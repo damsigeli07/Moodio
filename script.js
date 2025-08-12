@@ -2,6 +2,8 @@
 let selectedMood = '';
 let currentTrack = null;
 let isPlaying = false;
+let currentHowl = null;
+let currentAudioUrl = '';
 
 // Map moods to arrays of song file paths
 const playlists = {
@@ -30,6 +32,45 @@ const playlists = {
   Nostalgic: [
     'music/Attention.mp3',
     // ...
+  ]
+};
+
+// Map moods to actual audio files present in /music (lowercase keys)
+const audioPlaylists = {
+  happy: [
+    'music/Alan_Walker.mp3',
+    'music/Better-When-Im-Dancing.mp3',
+    'music/hymn-for-the-weekend.mp3',
+    'music/Justin-Bieber-Eenie-Meenie.mp3',
+    'music/Main-Tera-Boyfriend.mp3'
+  ],
+  sad: [
+    'music/Die-With-A-Smile.mp3',
+    'music/Love-Is-Gone.mp3',
+    'music/Let Me Down Slowly.mp3',
+    'music/At-My-Worst.mp3'
+  ],
+  energetic: [
+    'music/Sia-Unstoppable.mp3',
+    'music/Tu Meri.mp3',
+    'music/Sooraj Dooba Hain.mp3',
+    'music/Main-Tera-Boyfriend.mp3'
+  ],
+  chill: [
+    'music/Timebelle - Apollo.mp3',
+    'music/Thousand-Years.mp3',
+    'music/Attention.mp3'
+  ],
+  romantic: [
+    'music/Perfect.mp3',
+    'music/Baaton Ko Teri - (Raag.Fm).mp3',
+    'music/Tu Tu Hai Wahi - (Raag.Fm).mp3',
+    'music/Thousand-Years.mp3'
+  ],
+  nostalgic: [
+    'music/Tu Tu Hai Wahi - (Raag.Fm).mp3',
+    'music/Galliyan - (Raag.Fm).mp3',
+    'music/Alan_Walker.mp3'
   ]
 };
 
@@ -268,6 +309,14 @@ function generateMusic() {
         document.getElementById('trackArtist').textContent = currentTrack.artist;
         document.getElementById('trackGenre').textContent = currentTrack.genre;
         
+        // Pick an audio file for this mood
+        const moodPlaylist = audioPlaylists[selectedMood] || [];
+        if (moodPlaylist.length > 0) {
+            currentAudioUrl = moodPlaylist[Math.floor(Math.random() * moodPlaylist.length)];
+        } else {
+            currentAudioUrl = '';
+        }
+        
         // Reset generate button
         generateBtn.classList.remove('loading');
         generateBtn.textContent = '🎵 Generate Music';
@@ -277,9 +326,36 @@ function generateMusic() {
     }, 1500);
 }
 
+// Initialize and play audio
+function loadAndPlayAudio(url) {
+    if (!url) return;
+    if (currentHowl) {
+        try { currentHowl.unload(); } catch (e) {}
+    }
+    currentHowl = new Howl({
+        src: [url],
+        html5: true,
+        volume: 0.75,
+        onend: () => {
+            const playBtn = document.querySelector('.play-btn');
+            if (playBtn) {
+                playBtn.textContent = '▶';
+                playBtn.dataset.playing = 'false';
+            }
+            isPlaying = false;
+        }
+    });
+    currentHowl.play();
+}
+
 function startPlayback() {
     const progressFill = document.querySelector('.progress-fill');
     const playBtn = document.querySelector('.play-btn');
+    
+    // Start real audio
+    if (currentAudioUrl) {
+        loadAndPlayAudio(currentAudioUrl);
+    }
     
     // Animate progress bar
     progressFill.style.animation = 'progressMove 3s ease-in-out infinite';
@@ -299,12 +375,14 @@ function togglePlay() {
         playBtn.textContent = '▶';
         playBtn.dataset.playing = 'false';
         progressFill.style.animationPlayState = 'paused';
+        if (currentHowl && currentHowl.playing()) { currentHowl.pause(); }
         isPlaying = false;
     } else {
         // Play
         playBtn.textContent = '⏸';
         playBtn.dataset.playing = 'true';
         progressFill.style.animationPlayState = 'running';
+        if (currentHowl && !currentHowl.playing()) { currentHowl.play(); }
         isPlaying = true;
     }
 }
@@ -313,6 +391,13 @@ function resetApp() {
     selectedMood = '';
     currentTrack = null;
     isPlaying = false;
+    
+    // Stop and unload audio
+    if (currentHowl) {
+        try { currentHowl.stop(); currentHowl.unload(); } catch (e) {}
+        currentHowl = null;
+    }
+    currentAudioUrl = '';
     
     // Reset text input
     document.getElementById('moodInput').value = '';
@@ -488,6 +573,11 @@ document.querySelector('.volume-slider').addEventListener('click', function(e) {
     // Update volume display
     const volumeText = this.parentElement.querySelector('span:last-child');
     volumeText.textContent = Math.round(percentage) + '%';
+
+    // Apply to audio
+    if (currentHowl) {
+        currentHowl.volume(Math.max(0, Math.min(1, percentage / 100)));
+    }
 });
 
 // Progress bar interaction
@@ -499,12 +589,27 @@ document.querySelector('.progress').addEventListener('click', function(e) {
     const progressFill = this.querySelector('.progress-fill');
     progressFill.style.width = Math.max(0, Math.min(100, percentage)) + '%';
     
-    // Update time display (simulated)
-    const currentTime = (percentage / 100) * 204; // 3:24 = 204 seconds
-    const minutes = Math.floor(currentTime / 60);
-    const seconds = Math.floor(currentTime % 60);
-    document.querySelector('.time:first-child').textContent = 
-        `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    // Update time display and seek if audio duration available
+    const leftTimeEl = document.querySelector('.time:first-child');
+    const rightTimeEl = document.querySelector('.time:last-child');
+
+    if (currentHowl && currentHowl.duration()) {
+        const duration = currentHowl.duration();
+        const newTime = (percentage / 100) * duration;
+        try { currentHowl.seek(newTime); } catch (e) {}
+        const minutes = Math.floor(newTime / 60);
+        const seconds = Math.floor(newTime % 60);
+        leftTimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        const durMin = Math.floor(duration / 60);
+        const durSec = Math.floor(duration % 60);
+        rightTimeEl.textContent = `${durMin}:${durSec.toString().padStart(2, '0')}`;
+    } else {
+        // Fallback simulated
+        const currentTime = (percentage / 100) * 204; // 3:24 = 204 seconds
+        const minutes = Math.floor(currentTime / 60);
+        const seconds = Math.floor(currentTime % 60);
+        leftTimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
 });
 
 // Card hover effects for desktop
