@@ -1,154 +1,210 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI DJ - Mood to Music Generator</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <div class="main-container">
-            <header class="app-header">
-                <div class="headphones">🎧</div>
-                <h1>🎵 MoodiO 🎵</h1>
-                <h2>🎶 Find Your Vibe, Feel the Magic 🎶 </h2>
-                <p>Let the good vibes roll! Whether you're glowing with
-                    happiness, riding a wave of chill, or lost in deep feels —
-                    our AI picks the perfect tunes to match your mood. Discover
-                    feel-good music made just for you!✨</p>
-                <div class="ready-banner">
-                    🎵 Ready to discover your mood music! 🎵
-                </div>
-            </header>
 
-                <div class="card" id="moodCard">
-                    <div class="card-header">
-                        <h2>🎵 How are you feeling? 🎵</h2>
-                        <p>Select your mood and let AI create the perfect
-                            playlist for you!</p>
-                    </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI DJ – Mood to Music Generator | MoodiO</title>
+    <meta name="description"
+        content="AI DJ – Let AI detect your mood and generate the perfect playlist for you. Powered by Google Gemini & Howler.js.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
 
-                    <div class="input-tabs">
-                        <button class="tab-btn active" data-tab="mood">😊 Mood
-                            Buttons</button>
-                        <button class="tab-btn" data-tab="text">Text
-                            Input</button>
-                    </div>
+<body>
+    <!-- Animated background blobs -->
+    <div class="bg-blob blob1"></div>
+    <div class="bg-blob blob2"></div>
+    <div class="bg-blob blob3"></div>
 
-                    <div id="moodButtonsContent" class="tab-content active">
-                        <div class="mood-buttons">
-                            <button class="mood-btn happy" data-mood="happy">😊
-                                Happy</button>
-                            <button class="mood-btn sad" data-mood="sad">😢
-                                Sad</button>
-                            <button class="mood-btn energetic"
-                                data-mood="energetic">⚡ Energetic</button>
-                            <button class="mood-btn chill" data-mood="chill">😎
-                                Chill</button>
-                            <button class="mood-btn romantic"
-                                data-mood="romantic">💕 Romantic</button>
-                            <button class="mood-btn nostalgic"
-                                data-mood="nostalgic">📺 Nostalgic</button>
+    <div class="main-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="headphones">🎧</div>
+            <h1>MoodiO</h1>
+            <h2>🎶 Find Your Vibe, Feel the Magic</h2>
+            <p>Let AI pick the perfect tunes to match your mood. Select a mood or describe how you feel — your personal
+                AI DJ does the rest!</p>
+            <div class="ready-banner">
+                <span class="pulse-dot"></span>
+                🎵 Ready to discover your mood music!
+            </div>
+        </header>
 
-                        </div>
-                    </div>
-                </div>
-                    <div id="textInputContent" class="tab-content">
-                        <div class="text-input-container">
-                            <input type="text" id="moodInput"
-                                placeholder="Tell me how you're feeling... 😊">
-                            <button id="analyzeMoodBtn">💖 Analyze My
-                                Mood</button>
-                        </div>
-                    </div>
-
-                <div class="card hidden" id="analysisCard">
-                    <div class="card-header">
-                        <h2>AI Mood Analysis 📻 ✨</h2>
-                    </div>
-
-                    <div class="analysis-result">
-                        <div class="mood-icon">✨</div>
-                        <p id="analysisText">Detected pure joy! Upbeat melodies
-                            with major keys and infectious rhythms selected to
-                            amplify your happiness! 🎉</p>
-                    </div>
-
-                    <div class="match-question">
-                        How well does this match your vibe? 🤔
-                    </div>
-
-                    <div class="rating-buttons">
-                        <button class="rating-btn" data-rating="bad">😞 Not at
-                            all</button>
-                        <button class="rating-btn" data-rating="okay">😐 Kind
-                            of</button>
-                        <button class="rating-btn" data-rating="perfect">😍
-                            Perfect match!</button>
-                    </div>
-
-                    <div class="card-actions">
-                        <button id="generateMusicBtn" class="generate-btn">🎵
-                            Generate Music</button>
-                        <button id="backToMoodBtn1" class="back-btn">🔄 Try
-                            Another Mood</button>
-                    </div>
-                </div>
-
-                <div class="card hidden" id="playerCard">
-                    <div class="card-header">
-                        <h2>🎵 Now Playing</h2>
-                    </div>
-
-                    <div class="player-content">
-                        <div class="album-art">
-                            🎵
-                            <div class="loading-dots">................</div>
-                        </div>
-
-                        <div class="track-info">
-                            <h3 id="trackTitle">Sunshine Vibes</h3>
-                            <p id="trackArtist">Happy Beats</p>
-                            <span id="trackGenre">Pop</span>
-                        </div>
-
-                        <div class="progress-bar">
-                            <span class="time">0:00</span>
-                            <div class="progress">
-                                <div class="progress-fill"></div>
-                            </div>
-                            <span class="time">3:24</span>
-                        </div>
-
-                        <div class="player-controls">
-                            <button class="control-btn">⏮</button>
-                            <button class="control-btn play-btn">▶</button>
-                            <button class="control-btn">⏭</button>
-                        </div>
-
-                        <div class="volume-control">
-                            <span>🔊</span>
-                            <div class="volume-slider">
-                                <div class="volume-fill"></div>
-                            </div>
-                            <span>75%</span>
-                        </div>
-                    </div>
-
-                    <div class="card-actions">
-                        <button id="backToMoodBtn2" class="back-btn">🔄 Try
-                            Another Mood</button>
-                    </div>
-                </div>
-            </header>
+        <!-- ERROR MESSAGE (hidden by default) -->
+        <div id="errorMessage" class="error-message hidden" role="alert">
+            <span class="error-icon">⚠️</span>
+            <p id="errorText">Something went wrong. Please try again!</p>
+            <button class="error-close" id="errorCloseBtn">✕</button>
         </div>
-        <script src="src/api-key.js"></script>
-        
 
-        <script
-            src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"
-            integrity="sha512-xi/RZRIF/S0hJ+yJJYuZ5yk6/8pCiRlEXZzoguSMl+vk2i3m6UjUO/WcZ11blRL/O+rnj94JRGwt/CHbc9+6EA=="
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-        <script src="script.js"></script>
-    </body>
+        <!-- CARD 1: Mood Selection -->
+        <div class="card" id="moodCard">
+            <div class="card-header">
+                <h2>🎵 How are you feeling?</h2>
+                <p>Select your mood and let AI create the perfect playlist for you!</p>
+            </div>
+
+            <div class="input-tabs" role="tablist">
+                <button class="tab-btn active" data-tab="mood" id="tab-mood" role="tab" aria-selected="true"
+                    aria-controls="moodButtonsContent">😊 Mood Buttons</button>
+                <button class="tab-btn" data-tab="text" id="tab-text" role="tab" aria-selected="false"
+                    aria-controls="textInputContent">✏️ Text Input</button>
+            </div>
+
+            <!-- TAB: Mood Buttons -->
+            <div id="moodButtonsContent" class="tab-content active" role="tabpanel" aria-labelledby="tab-mood">
+                <div class="mood-buttons">
+                    <button class="mood-btn happy" data-mood="happy" id="btn-happy">😊 Happy</button>
+                    <button class="mood-btn sad" data-mood="sad" id="btn-sad">😢 Sad</button>
+                    <button class="mood-btn energetic" data-mood="energetic" id="btn-energetic">⚡ Energetic</button>
+                    <button class="mood-btn chill" data-mood="chill" id="btn-chill">😎 Chill</button>
+                    <button class="mood-btn romantic" data-mood="romantic" id="btn-romantic">💕 Romantic</button>
+                    <button class="mood-btn nostalgic" data-mood="nostalgic" id="btn-nostalgic">📺 Nostalgic</button>
+                </div>
+            </div>
+
+            <!-- TAB: Text Input -->
+            <div id="textInputContent" class="tab-content" role="tabpanel" aria-labelledby="tab-text">
+                <div class="text-input-container">
+                    <textarea id="moodInput"
+                        placeholder="Tell me how you're feeling... e.g. 'I feel excited and ready to take on the world!' or 'I'm feeling a bit low and nostalgic today'"
+                        rows="3"></textarea>
+                    <button id="analyzeMoodBtn">
+                        <span id="analyzeBtnText">💖 Analyze My Mood</span>
+                        <span id="analyzeLoading" class="btn-spinner hidden">⏳</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD 2: AI Mood Analysis -->
+        <div class="card hidden" id="analysisCard">
+            <div class="card-header">
+                <h2>AI Mood Analysis 📻 ✨</h2>
+            </div>
+
+            <div class="analysis-result" id="analysisResult">
+                <div class="mood-icon" id="moodIconDisplay">✨</div>
+                <p id="analysisText">Analyzing your mood...</p>
+            </div>
+
+            <div class="match-question">
+                How well does this match your vibe? 🤔
+            </div>
+
+            <div class="rating-buttons">
+                <button class="rating-btn" data-rating="bad" id="rating-bad">😞 Not at all</button>
+                <button class="rating-btn" data-rating="okay" id="rating-okay">😐 Kind of</button>
+                <button class="rating-btn" data-rating="perfect" id="rating-perfect">😍 Perfect match!</button>
+            </div>
+
+            <!-- Refine input (shown when user says "Not at all") -->
+            <div id="refineSection" class="refine-section hidden">
+                <p class="refine-prompt">Tell me more so I can find better music for you 🎯</p>
+                <textarea id="refineInput" placeholder="Describe your feeling in more detail..." rows="2"></textarea>
+                <button id="refineBtn">🔄 Re-analyze with Gemini AI</button>
+            </div>
+
+            <div class="card-actions">
+                <button id="generateMusicBtn" class="generate-btn" disabled>🎵 Generate Music</button>
+                <button id="backToMoodBtn1" class="back-btn">🔄 Try Another Mood</button>
+            </div>
+        </div>
+
+        <!-- CARD 3: Music Player -->
+        <div class="card hidden" id="playerCard">
+            <div class="card-header">
+                <h2>🎵 Now Playing</h2>
+            </div>
+
+            <div class="player-content">
+                <!-- Album Art with visualizer overlay -->
+                <div class="album-art-wrapper">
+                    <div class="album-art" id="albumArt">
+                        <div class="album-art-emoji" id="albumEmoji">🎵</div>
+                        <div class="loading-dots" id="loadingDots">Loading...</div>
+                    </div>
+                    <!-- CSS Waveform visualizer -->
+                    <div class="waveform-container" id="waveform">
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                    </div>
+                </div>
+
+                <!-- Track Info -->
+                <div class="track-info">
+                    <h3 id="trackTitle">Loading...</h3>
+                    <p id="trackArtist">Please wait</p>
+                    <span id="trackGenre">—</span>
+                </div>
+
+                <!-- Playlist Counter -->
+                <div class="playlist-info" id="playlistInfo">Track 1 of 1</div>
+
+                <!-- Progress Bar (seekable) -->
+                <div class="progress-bar">
+                    <span class="time" id="timeElapsed">0:00</span>
+                    <div class="progress" id="progressBar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+                        aria-valuenow="0">
+                        <div class="progress-fill" id="progressFill"></div>
+                        <div class="progress-thumb" id="progressThumb"></div>
+                    </div>
+                    <span class="time" id="timeDuration">0:00</span>
+                </div>
+
+                <!-- Player Controls -->
+                <div class="player-controls">
+                    <button class="control-btn icon-btn" id="shuffleBtn" title="Shuffle">🔀</button>
+                    <button class="control-btn" id="prevBtn" title="Previous">⏮</button>
+                    <button class="control-btn play-btn" id="playPauseBtn" title="Play/Pause">▶</button>
+                    <button class="control-btn" id="nextBtn" title="Next">⏭</button>
+                    <button class="control-btn icon-btn" id="repeatBtn" title="Repeat">🔁</button>
+                </div>
+
+                <!-- Volume Control (draggable) -->
+                <div class="volume-control">
+                    <button class="vol-icon-btn" id="muteBtn" title="Mute">🔊</button>
+                    <div class="volume-slider" id="volumeSlider" role="slider" aria-label="Volume" aria-valuemin="0"
+                        aria-valuemax="100" aria-valuenow="75">
+                        <div class="volume-fill" id="volumeFill"></div>
+                        <div class="volume-thumb" id="volumeThumb"></div>
+                    </div>
+                    <span id="volumeText">75%</span>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button id="backToMoodBtn2" class="back-btn full-width">🔄 Try Another Mood</button>
+            </div>
+        </div>
+
+    </div><!-- end .main-container -->
+
+    <footer class="app-footer">
+        <p>🎵 MoodiO — AI DJ powered by <strong>Google Gemini</strong> &amp; <strong>Howler.js</strong> &nbsp;|&nbsp;
+            Music: Creative Commons</p>
+    </footer>
+
+    <!-- Howler.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"
+        integrity="sha512-xi/RZRIF/S0hJ+yJJYuZ5yk6/8pCiRlEXZzoguSMl+vk2i3m6UjUO/WcZ11blRL/O+rnj94JRGwt/CHbc9+6EA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- Main App (ES Module) -->
+    <script type="module" src="script.js"></script>
+</body>
+
 </html>
