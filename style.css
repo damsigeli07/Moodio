@@ -1299,3 +1299,8 @@ button:focus-visible {
         font-size: 58px;
     }
 }
+
+/* FINAL OVERRIDE */
+.hidden {
+    display: none !important;
+}
