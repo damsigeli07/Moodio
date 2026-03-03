@@ -4,7 +4,7 @@
  * Free Creative Commons / royalty-free MP3 streams — no local files needed.
  */
 
-import GEMINI_API_KEY, { GEMINI_MODEL } from './config.js';
+import { GEMINI_API_KEY, GEMINI_MODEL } from './config.js';
 
 // ---------------------------------------------------------------------------
 // FREE STREAMING MUSIC LIBRARY (Creative Commons / Royalty-Free MP3 URLs)
