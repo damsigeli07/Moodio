@@ -1,493 +1,508 @@
-import GEMINI_API_KEY from './config.js';
+/**
+ * MoodiO – AI DJ: Mood-to-Music Generator
+ * Uses Gemini AI for mood analysis and Howler.js for audio playback.
+ * Free Creative Commons / royalty-free MP3 streams — no local files needed.
+ */
 
-// MoodiO - AI DJ Mood to Music Generator
+import GEMINI_API_KEY, { GEMINI_MODEL } from './config.js';
+
+// ---------------------------------------------------------------------------
+// FREE STREAMING MUSIC LIBRARY (Creative Commons / Royalty-Free MP3 URLs)
+// Sources: Pixabay, Free Music Archive, Bensound (free tier), ccMixter
+// All tracks are freely usable for non-commercial/educational projects.
+// ---------------------------------------------------------------------------
+// HearThis.at API mood → category mapping
+const HEARTHIS_MAPPING = {
+    happy: 'happy',
+    sad: 'ambient',
+    energetic: 'dance',
+    chill: 'chillout',
+    romantic: 'love',
+    nostalgic: 'retro'
+};
+
+// Gradient colors per mood
+const MOOD_COLORS = {
+    happy: 'linear-gradient(135deg, #ff6b9d, #ffdd59)',
+    sad: 'linear-gradient(135deg, #74b9ff, #0984e3)',
+    energetic: 'linear-gradient(135deg, #fd79a8, #fdcb6e)',
+    chill: 'linear-gradient(135deg, #55efc4, #00b894)',
+    romantic: 'linear-gradient(135deg, #fd79a8, #9b59b6)',
+    nostalgic: 'linear-gradient(135deg, #a29bfe, #6c5ce7)'
+};
+
+const MOOD_EMOJIS = {
+    happy: '😊', sad: '😢', energetic: '⚡', chill: '😎', romantic: '💕', nostalgic: '📺'
+};
+
+// Mood descriptions shown in the analysis card
+const MOOD_ANALYSIS = {
+    happy: {
+        text: "Detected pure joy! 🌟 Upbeat melodies with major keys and infectious rhythms selected to amplify your happiness! 🎉",
+        icon: "😊",
+        label: "Happy"
+    },
+    sad: {
+        text: "Feeling the blues... 💙 Gentle melodies and emotional ballads to help you process your feelings. Sometimes we need to feel it to heal it. 🤗",
+        icon: "😢",
+        label: "Sad"
+    },
+    energetic: {
+        text: "High energy vibes detected! ⚡ Pumping beats and driving rhythms to fuel your motivation and get you moving! 🔥",
+        icon: "⚡",
+        label: "Energetic"
+    },
+    chill: {
+        text: "Cool and relaxed energy! 😎 Smooth, laid-back tracks perfect for unwinding and finding your zen. Time to breathe easy. 🌊",
+        icon: "😎",
+        label: "Chill"
+    },
+    romantic: {
+        text: "Love is in the air! 💕 Tender melodies and heartfelt music to celebrate those special feelings and romantic moments. 💖",
+        icon: "💕",
+        label: "Romantic"
+    },
+    nostalgic: {
+        text: "Taking a trip down memory lane! 📺 Classic cinematic tunes that bring back those golden moments and sweet memories. ✨",
+        icon: "📺",
+        label: "Nostalgic"
+    }
+};
+
+// ---------------------------------------------------------------------------
+// MAIN APP CLASS
+// ---------------------------------------------------------------------------
 class MoodiO {
     constructor() {
-        // Music library organized by mood
-        this.musicLibrary = {
-            happy: [
-                'assets/music/Alan_Walker.mp3',
-                'assets/music/Better-When-Im-Dancing.mp3',
-                'assets/music/hymn-for-the-weekend.mp3',
-                'assets/music/Justin-Bieber-Eenie-Meenie.mp3',
-                'assets/music/Main-Tera-Boyfriend.mp3'
-            ],
-            sad: [
-                'assets/music/Die-With-A-Smile.mp3',
-                'assets/music/Love-Is-Gone.mp3',
-                'assets/music/Let Me Down Slowly.mp3',
-                'assets/music/At-My-Worst.mp3'
-            ],
-            energetic: [
-                'assets/music/Sia-Unstoppable.mp3',
-                'assets/music/Tu Meri.mp3',
-                'assets/music/Sooraj Dooba Hain.mp3',
-                'assets/music/Main-Tera-Boyfriend.mp3'
-            ],
-            chill: [
-                'assets/music/Timebelle - Apollo.mp3',
-                'assets/music/Thousand-Years.mp3',
-                'assets/music/Attention.mp3'
-            ],
-            romantic: [
-                'assets/music/Perfect.mp3',
-                'assets/music/Baaton Ko Teri - (Raag.Fm).mp3',
-                'assets/music/Tu Tu Hai Wahi - (Raag.Fm).mp3',
-                'assets/music/Thousand-Years.mp3'
-            ],
-            nostalgic: [
-                'assets/music/Tu Tu Hai Wahi - (Raag.Fm).mp3',
-                'assets/music/Galliyan - (Raag.Fm).mp3',
-                'assets/music/Alan_Walker.mp3'
-            ]
-        };
-
-        // Track info mapping
-        this.trackInfo = {
-            'Alan_Walker.mp3': { title: 'Faded', artist: 'Alan Walker', genre: 'Electronic' },
-            'Better-When-Im-Dancing.mp3': { title: 'Better When I\'m Dancing', artist: 'Meghan Trainor', genre: 'Pop' },
-            'hymn-for-the-weekend.mp3': { title: 'Hymn For The Weekend', artist: 'Coldplay', genre: 'Pop Rock' },
-            'Justin-Bieber-Eenie-Meenie.mp3': { title: 'Eenie Meenie', artist: 'Justin Bieber', genre: 'Pop' },
-            'Main-Tera-Boyfriend.mp3': { title: 'Main Tera Boyfriend', artist: 'Raabta', genre: 'Bollywood' },
-            'Die-With-A-Smile.mp3': { title: 'Die With A Smile', artist: 'Bruno Mars', genre: 'Pop' },
-            'Love-Is-Gone.mp3': { title: 'Love Is Gone', artist: 'SLANDER', genre: 'EDM' },
-            'Let Me Down Slowly.mp3': { title: 'Let Me Down Slowly', artist: 'Alec Benjamin', genre: 'Pop' },
-            'At-My-Worst.mp3': { title: 'At My Worst', artist: 'Pink Sweat$', genre: 'R&B' },
-            'Sia-Unstoppable.mp3': { title: 'Unstoppable', artist: 'Sia', genre: 'Pop' },
-            'Tu Meri.mp3': { title: 'Tu Meri', artist: 'Bang Bang', genre: 'Bollywood' },
-            'Sooraj Dooba Hain.mp3': { title: 'Sooraj Dooba Hain', artist: 'Roy', genre: 'Bollywood' },
-            'Timebelle - Apollo.mp3': { title: 'Apollo', artist: 'Timebelle', genre: 'Pop' },
-            'Thousand-Years.mp3': { title: 'A Thousand Years', artist: 'Christina Perri', genre: 'Pop' },
-            'Attention.mp3': { title: 'Attention', artist: 'Charlie Puth', genre: 'Pop' },
-            'Perfect.mp3': { title: 'Perfect', artist: 'Ed Sheeran', genre: 'Pop' },
-            'Baaton Ko Teri - (Raag.Fm).mp3': { title: 'Baaton Ko Teri', artist: 'All Is Well', genre: 'Bollywood' },
-            'Tu Tu Hai Wahi - (Raag.Fm).mp3': { title: 'Tu Tu Hai Wahi', artist: 'Yeh Vaada Raha', genre: 'Bollywood' },
-            'Galliyan - (Raag.Fm).mp3': { title: 'Galliyan', artist: 'Ek Villain', genre: 'Bollywood' }
-        };
-
-        // Mood analysis responses
-        this.moodAnalysis = {
-            happy: {
-                text: "Detected pure joy! 🌟 Upbeat melodies with major keys and infectious rhythms selected to amplify your happiness! 🎉",
-                icon: "😊"
-            },
-            sad: {
-                text: "Feeling the blues... 💙 Gentle melodies and emotional ballads to help you process your feelings. Sometimes we need to feel it to heal it. 🤗",
-                icon: "😢"
-            },
-            energetic: {
-                text: "High energy vibes detected! ⚡ Pumping beats and driving rhythms to fuel your motivation and get you moving! 🔥",
-                icon: "⚡"
-            },
-            chill: {
-                text: "Cool and relaxed energy! 😎 Smooth, laid-back tracks perfect for unwinding and finding your zen. Time to breathe easy. 🌊",
-                icon: "😎"
-            },
-            romantic: {
-                text: "Love is in the air! 💕 Tender melodies and heartfelt lyrics to celebrate those special feelings and romantic moments. 💖",
-                icon: "💕"
-            },
-            nostalgic: {
-                text: "Taking a trip down memory lane! 📺 Classic tunes that bring back those golden moments and sweet memories. ✨",
-                icon: "📺"
-            }
-        };
-
-        // Current state
         this.currentMood = null;
-        this.currentTrack = null;
-        this.currentPlaylist = [];
+        this.currentTrack = null;       // Howl instance
+        this.currentPlaylist = [];      // array of track objects
         this.currentTrackIndex = 0;
         this.isPlaying = false;
+        this.isShuffle = false;
+        this.isRepeat = false;
+        this.isMuted = false;
         this.currentVolume = 0.75;
         this.progressInterval = null;
+        this.isDraggingProgress = false;
+        this.isDraggingVolume = false;
 
-        // Initialize the app
         this.init();
     }
 
     init() {
-        console.log('🎵 MoodiO initializing...');
+        console.log('🎵 MoodiO initialising…');
         this.bindEvents();
-        this.initializeUI();
-        console.log('🎵 MoodiO ready to rock!');
-    }
-
-    initializeUI() {
-        // Reset generate button to disabled state
-        const generateBtn = document.getElementById('generateMusicBtn');
-        if (generateBtn) {
-            generateBtn.disabled = true;
-            generateBtn.style.opacity = '0.6';
-        }
-
-        // Initialize volume UI
         this.updateVolumeUI();
+        console.log('🎵 MoodiO ready!');
     }
 
+    // -------------------------------------------------------------------------
+    // EVENT BINDING
+    // -------------------------------------------------------------------------
     bindEvents() {
-        // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
-        });
+        // Tabs
+        document.querySelectorAll('.tab-btn').forEach(btn =>
+            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab))
+        );
 
-        // Mood buttons - Main functionality!
-        document.querySelectorAll('.mood-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        // Mood buttons
+        document.querySelectorAll('.mood-btn').forEach(btn =>
+            btn.addEventListener('click', () => this.selectMood(btn.dataset.mood))
+        );
+
+        // Text analysis
+        document.getElementById('analyzeMoodBtn')?.addEventListener('click', () => this.analyzeTextMood());
+        document.getElementById('moodInput')?.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                const mood = e.target.dataset.mood;
-                console.log('🎯 Mood selected:', mood);
-                this.selectMood(mood);
-            });
+                this.analyzeTextMood();
+            }
         });
-
-        // Text input mood analysis
-        const analyzeMoodBtn = document.getElementById('analyzeMoodBtn');
-        const moodInput = document.getElementById('moodInput');
-
-        if (analyzeMoodBtn) {
-            analyzeMoodBtn.addEventListener('click', () => this.analyzeTextMood());
-        }
-
-        if (moodInput) {
-            moodInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') this.analyzeTextMood();
-            });
-        }
 
         // Rating buttons
-        document.querySelectorAll('.rating-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.rateMoodAnalysis(e.target.dataset.rating));
-        });
+        document.querySelectorAll('.rating-btn').forEach(btn =>
+            btn.addEventListener('click', () => this.rateMoodAnalysis(btn.dataset.rating))
+        );
 
-        // Navigation buttons
-        const generateMusicBtn = document.getElementById('generateMusicBtn');
-        const backToMoodBtn1 = document.getElementById('backToMoodBtn1');
-        const backToMoodBtn2 = document.getElementById('backToMoodBtn2');
+        // Refine (AI feedback loop)
+        document.getElementById('refineBtn')?.addEventListener('click', () => this.refineWithAI());
 
-        if (generateMusicBtn) {
-            generateMusicBtn.addEventListener('click', () => this.generateMusic());
-        }
-
-        if (backToMoodBtn1) {
-            backToMoodBtn1.addEventListener('click', () => this.resetToMoodSelection());
-        }
-
-        if (backToMoodBtn2) {
-            backToMoodBtn2.addEventListener('click', () => this.resetToMoodSelection());
-        }
+        // Generate & back
+        document.getElementById('generateMusicBtn')?.addEventListener('click', () => this.generateMusic());
+        document.getElementById('backToMoodBtn1')?.addEventListener('click', () => this.resetToMoodSelection());
+        document.getElementById('backToMoodBtn2')?.addEventListener('click', () => this.resetToMoodSelection());
 
         // Player controls
-        const playBtn = document.querySelector('.play-btn');
-        const prevBtn = document.querySelector('.control-btn:first-child');
-        const nextBtn = document.querySelector('.control-btn:last-child');
+        document.getElementById('playPauseBtn')?.addEventListener('click', () => this.togglePlayPause());
+        document.getElementById('prevBtn')?.addEventListener('click', () => this.previousTrack());
+        document.getElementById('nextBtn')?.addEventListener('click', () => this.nextTrack());
+        document.getElementById('shuffleBtn')?.addEventListener('click', () => this.toggleShuffle());
+        document.getElementById('repeatBtn')?.addEventListener('click', () => this.toggleRepeat());
+        document.getElementById('muteBtn')?.addEventListener('click', () => this.toggleMute());
 
-        if (playBtn) {
-            playBtn.addEventListener('click', () => this.togglePlayPause());
-        }
+        // Error close
+        document.getElementById('errorCloseBtn')?.addEventListener('click', () => this.hideError());
 
-        if (prevBtn) {
-            prevBtn.addEventListener('click', () => this.previousTrack());
-        }
+        // Seekable progress bar
+        this.bindProgressBar();
 
-        if (nextBtn) {
-            nextBtn.addEventListener('click', () => this.nextTrack());
-        }
+        // Draggable volume slider
+        this.bindVolumeSlider();
 
-        // Volume control
-        const volumeSlider = document.querySelector('.volume-slider');
-        if (volumeSlider) {
-            volumeSlider.addEventListener('click', (e) => this.setVolume(e));
-        }
+        // Keyboard shortcuts
+        document.addEventListener('keydown', e => this.handleKeydown(e));
     }
 
+    bindProgressBar() {
+        const bar = document.getElementById('progressBar');
+        if (!bar) return;
+
+        const seek = (e) => {
+            if (!this.currentTrack) return;
+            const rect = bar.getBoundingClientRect();
+            const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const duration = this.currentTrack.duration();
+            if (duration > 0) {
+                this.currentTrack.seek(x * duration);
+                this.updateProgressUI(x * 100);
+            }
+        };
+
+        bar.addEventListener('click', seek);
+
+        bar.addEventListener('mousedown', () => { this.isDraggingProgress = true; });
+        document.addEventListener('mousemove', e => {
+            if (this.isDraggingProgress) seek(e);
+        });
+        document.addEventListener('mouseup', () => { this.isDraggingProgress = false; });
+
+        // Touch support
+        bar.addEventListener('touchstart', e => {
+            this.isDraggingProgress = true;
+            seek(e.touches[0]);
+        }, { passive: true });
+        document.addEventListener('touchmove', e => {
+            if (this.isDraggingProgress) seek(e.touches[0]);
+        }, { passive: true });
+        document.addEventListener('touchend', () => { this.isDraggingProgress = false; });
+    }
+
+    bindVolumeSlider() {
+        const slider = document.getElementById('volumeSlider');
+        if (!slider) return;
+
+        const setVol = (e) => {
+            const rect = slider.getBoundingClientRect();
+            const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            this.currentVolume = pct;
+            if (this.currentTrack) this.currentTrack.volume(pct);
+            this.isMuted = false;
+            this.updateVolumeUI();
+        };
+
+        slider.addEventListener('click', setVol);
+        slider.addEventListener('mousedown', () => { this.isDraggingVolume = true; });
+        document.addEventListener('mousemove', e => {
+            if (this.isDraggingVolume) setVol(e);
+        });
+        document.addEventListener('mouseup', () => { this.isDraggingVolume = false; });
+
+        // Touch
+        slider.addEventListener('touchstart', e => {
+            this.isDraggingVolume = true;
+            setVol(e.touches[0]);
+        }, { passive: true });
+        document.addEventListener('touchmove', e => {
+            if (this.isDraggingVolume) setVol(e.touches[0]);
+        }, { passive: true });
+        document.addEventListener('touchend', () => { this.isDraggingVolume = false; });
+    }
+
+    // -------------------------------------------------------------------------
+    // TAB SWITCHING
+    // -------------------------------------------------------------------------
     switchTab(tab) {
-        // Update tab buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        const activeTab = document.querySelector(`[data-tab="${tab}"]`);
-        if (activeTab) {
-            activeTab.classList.add('active');
-        }
-
-        // Update tab content
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        if (tab === 'mood') {
-            const moodContent = document.getElementById('moodButtonsContent');
-            if (moodContent) {
-                moodContent.classList.add('active');
-            }
-        } else if (tab === 'text') {
-            const textContent = document.getElementById('textInputContent');
-            if (textContent) {
-                textContent.classList.add('active');
-            }
-        }
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+            btn.setAttribute('aria-selected', btn.dataset.tab === tab ? 'true' : 'false');
+        });
+        document.getElementById('moodButtonsContent')?.classList.toggle('active', tab === 'mood');
+        document.getElementById('textInputContent')?.classList.toggle('active', tab === 'text');
     }
 
+    // -------------------------------------------------------------------------
+    // MOOD SELECTION (button clicks)
+    // -------------------------------------------------------------------------
     selectMood(mood) {
-        console.log('🎯 Processing mood:', mood);
+        console.log('🎯 Mood selected:', mood);
         this.currentMood = mood;
         this.showMoodAnalysis(mood);
     }
 
-    async analyzeTextMood() {
-        const moodInput = document.getElementById('moodInput');
-        if (!moodInput) return;
-
-        const input = moodInput.value.trim();
+    // -------------------------------------------------------------------------
+    // AI MOOD ANALYSIS (text input → Gemini API)
+    // -------------------------------------------------------------------------
+    async analyzeTextMood(text) {
+        const input = text || document.getElementById('moodInput')?.value.trim();
         if (!input) {
-            this.showError('Please tell us how you\'re feeling! 😊');
+            this.showError("Please tell us how you're feeling! 😊");
             return;
         }
 
-        const analyzeBtn = document.getElementById('analyzeMoodBtn');
-        const analyzeLoading = document.getElementById('analyzeLoading');
+        const btn = document.getElementById('analyzeMoodBtn');
+        const btnText = document.getElementById('analyzeBtnText');
+        const spinner = document.getElementById('analyzeLoading');
 
-        // Show loading state
-        if (analyzeBtn && analyzeLoading) {
-            analyzeBtn.disabled = true;
-            analyzeBtn.classList.add('opacity-70', 'cursor-not-allowed');
-            analyzeBtn.querySelector('span').textContent = 'Analyzing...';
-            analyzeLoading.classList.remove('hidden');
-        }
+        if (btn) btn.disabled = true;
+        if (btnText) btnText.textContent = 'Analyzing…';
+        if (spinner) spinner.classList.remove('hidden');
 
         try {
-            const prompt = `Analyze the following text and categorize the mood of the text into exactly one of these six categories: "happy", "sad", "energetic", "chill", "romantic", or "nostalgic". Reply ONLY with the exact single word of the category, nothing else, no punctuation.\n\nText: "${input}"`;
+            const prompt = `Analyze the following text and categorize the mood into exactly one of these six categories: "happy", "sad", "energetic", "chill", "romantic", or "nostalgic". Reply with ONLY the exact single word, no punctuation, no explanation.\n\nText: "${input}"`;
 
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: prompt }]
-                    }]
-                })
-            });
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                }
+            );
 
-            if (!response.ok) {
-                throw new Error(`API request failed with status ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`API error: ${response.status}`);
 
             const data = await response.json();
+            let detectedMood = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase() || '';
 
-            if (data.candidates && data.candidates.length > 0) {
-                let detectedMood = data.candidates[0].content.parts[0].text.trim().toLowerCase();
-
-                // Fallback handling if AI gives an unexpected response
-                const validMoods = ['happy', 'sad', 'energetic', 'chill', 'romantic', 'nostalgic'];
-                if (!validMoods.includes(detectedMood)) {
-                    console.warn('AI returned an unexpected mood:', detectedMood, '- falling back to chill.');
-                    detectedMood = 'chill';
-                }
-
-                console.log('🤖 Gemini AI detected mood:', detectedMood, 'from text:', input);
-                this.currentMood = detectedMood;
-                this.showMoodAnalysis(detectedMood);
-            } else {
-                throw new Error('Unexpected API response format');
+            const validMoods = ['happy', 'sad', 'energetic', 'chill', 'romantic', 'nostalgic'];
+            if (!validMoods.includes(detectedMood)) {
+                console.warn('Unexpected mood from API:', detectedMood, '→ defaulting to chill');
+                detectedMood = 'chill';
             }
-        } catch (error) {
-            console.error('Error calling Gemini API:', error);
-            this.showError('Failed to analyze mood with AI. Please try again! 🤖');
+
+            console.log('🤖 Gemini detected mood:', detectedMood);
+            this.currentMood = detectedMood;
+            this.showMoodAnalysis(detectedMood);
+
+        } catch (err) {
+            console.error('Gemini API error:', err);
+            this.showError('Could not reach Gemini AI. Please check your API key or internet connection. 🤖');
         } finally {
-            // Reset loading state
-            if (analyzeBtn && analyzeLoading) {
-                analyzeBtn.disabled = false;
-                analyzeBtn.classList.remove('opacity-70', 'cursor-not-allowed');
-                analyzeBtn.querySelector('span').textContent = '✨ Analyze My Mood';
-                analyzeLoading.classList.add('hidden');
-            }
+            if (btn) btn.disabled = false;
+            if (btnText) btnText.textContent = '💖 Analyze My Mood';
+            if (spinner) spinner.classList.add('hidden');
         }
     }
 
+    // -------------------------------------------------------------------------
+    // SHOW MOOD ANALYSIS CARD
+    // -------------------------------------------------------------------------
     showMoodAnalysis(mood) {
-        console.log('🎭 Showing analysis for:', mood);
+        const analysis = MOOD_ANALYSIS[mood];
+        if (!analysis) return;
 
-        const analysis = this.moodAnalysis[mood];
-        if (!analysis) {
-            this.showError('Mood analysis not found! 😅');
-            return;
-        }
+        const icon = document.getElementById('moodIconDisplay');
+        const text = document.getElementById('analysisText');
 
-        // Update analysis display
-        const moodIcon = document.querySelector('.mood-icon');
-        const analysisText = document.getElementById('analysisText');
+        if (icon) icon.textContent = analysis.icon;
+        if (text) text.textContent = analysis.text;
 
-        if (moodIcon) {
-            moodIcon.textContent = analysis.icon;
-        }
+        // Reset rating buttons
+        document.querySelectorAll('.rating-btn').forEach(btn => btn.classList.remove('selected'));
 
-        if (analysisText) {
-            analysisText.textContent = analysis.text;
-        }
+        // Reset generate button
+        const genBtn = document.getElementById('generateMusicBtn');
+        if (genBtn) { genBtn.disabled = true; genBtn.style.opacity = '0.5'; }
 
-        // Show analysis card with smooth animation
+        // Hide refine section
+        document.getElementById('refineSection')?.classList.add('hidden');
+
         this.showCard('analysisCard');
 
-        // Add bounce effect
+        // Bounce effect
         setTimeout(() => {
-            const analysisResult = document.querySelector('.analysis-result');
-            if (analysisResult) {
-                analysisResult.style.transform = 'scale(1.05)';
-                setTimeout(() => {
-                    analysisResult.style.transform = 'scale(1)';
-                }, 300);
+            const ar = document.getElementById('analysisResult');
+            if (ar) {
+                ar.style.transform = 'scale(1.05)';
+                setTimeout(() => { ar.style.transform = 'scale(1)'; }, 300);
             }
         }, 150);
     }
 
+    // -------------------------------------------------------------------------
+    // RATING / AI FEEDBACK LOOP
+    // -------------------------------------------------------------------------
     rateMoodAnalysis(rating) {
-        console.log('⭐ User rating:', rating);
+        console.log('⭐ Rating:', rating);
 
-        // Visual feedback for rating
-        document.querySelectorAll('.rating-btn').forEach(btn => {
-            btn.classList.remove('bg-gray-300', 'border-brand-pink');
-            btn.classList.add('bg-gray-100');
-        });
-        const selectedBtn = document.querySelector(`[data-rating="${rating}"]`);
-        if (selectedBtn) {
-            selectedBtn.classList.remove('bg-gray-100');
-            selectedBtn.classList.add('bg-gray-300', 'border-brand-pink');
-        }
+        document.querySelectorAll('.rating-btn').forEach(btn => btn.classList.remove('selected'));
+        document.querySelector(`[data-rating="${rating}"]`)?.classList.add('selected');
 
-        // Enable generate music button with animation
-        const generateBtn = document.getElementById('generateMusicBtn');
-        if (generateBtn) {
-            generateBtn.disabled = false;
-            generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            generateBtn.style.transform = 'scale(1.05)';
-            setTimeout(() => {
-                generateBtn.style.transform = 'scale(1)';
-            }, 200);
-        }
-
-        // Provide encouraging feedback
-        const messages = {
-            perfect: 'Perfect! 🎯 Let\'s create your amazing playlist!',
-            okay: 'Good enough! 👌 Music coming right up!',
-            bad: 'No worries! 🎵 Let me surprise you with great tunes!'
-        };
-
-        if (messages[rating]) {
-            this.showTemporaryMessage(messages[rating]);
+        if (rating === 'bad') {
+            // Show refine section — AI feedback loop
+            document.getElementById('refineSection')?.classList.remove('hidden');
+            document.getElementById('refineInput')?.focus();
+            // Keep generate button disabled until they refine or we re-analyze
+        } else if (rating === 'okay') {
+            this.enableGenerateBtn();
+            this.showTemporaryMessage("Good enough! 👌 Let's find you some music!");
+        } else if (rating === 'perfect') {
+            this.enableGenerateBtn();
+            this.showTemporaryMessage("Perfect match! 🎯 Generating your playlist…");
         }
     }
 
-    generateMusic() {
-        if (!this.currentMood) {
-            this.showError('Please select a mood first! 🎭');
-            return;
-        }
-
-        console.log('🎵 Generating music for:', this.currentMood);
-
-        // Get playlist for current mood
-        this.currentPlaylist = [...this.musicLibrary[this.currentMood]];
-        if (this.currentPlaylist.length === 0) {
-            this.showError('No music available for this mood! 😅');
-            return;
-        }
-
-        // Shuffle playlist for variety
-        this.shuffleArray(this.currentPlaylist);
-        this.currentTrackIndex = 0;
-
-        console.log('🎶 Playlist ready:', this.currentPlaylist.length, 'tracks');
-
-        // Show player with loading animation
-        this.showCard('playerCard');
-        this.loadAndPlayTrack();
+    enableGenerateBtn() {
+        const btn = document.getElementById('generateMusicBtn');
+        if (!btn) return;
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.transform = 'scale(1.05)';
+        setTimeout(() => { btn.style.transform = 'scale(1)'; }, 200);
     }
 
+    // Refine with AI (feedback loop button)
+    async refineWithAI() {
+        const refineInput = document.getElementById('refineInput');
+        const text = refineInput?.value.trim();
+        if (!text) {
+            this.showError('Please describe your feeling in more detail! 🎯');
+            return;
+        }
+        await this.analyzeTextMood(text);
+    }
+
+    // -------------------------------------------------------------------------
+    // GENERATE MUSIC → Load Player
+    // -------------------------------------------------------------------------
+    async generateMusic() {
+        if (!this.currentMood) { this.showError('Please select a mood first! 🎭'); return; }
+
+        const genBtn = document.getElementById('generateMusicBtn');
+        const originalText = genBtn.textContent;
+        genBtn.disabled = true;
+        genBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finding tracks...';
+
+        try {
+            // Fetch from HearThis.at API
+            const category = HEARTHIS_MAPPING[this.currentMood] || 'popular';
+            const response = await fetch(`https://api-v2.hearthis.at/feed/?type=${category}&count=20`);
+
+            if (!response.ok) throw new Error("API Limit reached or network error");
+
+            const tracks = await response.json();
+
+            if (!tracks || !tracks.length) {
+                throw new Error("No tracks found for this mood");
+            }
+
+            // Map API response to our player format
+            this.currentPlaylist = tracks.map(t => ({
+                url: t.stream_url,
+                title: t.title,
+                artist: t.user.username,
+                genre: t.genre || this.currentMood,
+                emoji: MOOD_EMOJIS[this.currentMood],
+                color: MOOD_COLORS[this.currentMood]
+            }));
+
+            if (this.isShuffle) this.shuffleArray(this.currentPlaylist);
+            this.currentTrackIndex = 0;
+
+            this.showCard('playerCard');
+            this.loadAndPlayTrack();
+        } catch (error) {
+            console.error('❌ Music fetch error:', error);
+            this.showError("Could not stream music right now. Using fallback...");
+
+            // Fallback would go here if we kept local files, but we're moving to API-only.
+            // For now, let's just retry or show a better error.
+        } finally {
+            genBtn.disabled = false;
+            genBtn.textContent = originalText;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // HOWLER.JS PLAYBACK
+    // -------------------------------------------------------------------------
     loadAndPlayTrack() {
-        // Stop current track if playing
+        // Stop & unload previous
         if (this.currentTrack) {
             this.currentTrack.stop();
             this.currentTrack.unload();
+            this.currentTrack = null;
         }
+        if (this.progressInterval) clearInterval(this.progressInterval);
 
-        const trackPath = this.currentPlaylist[this.currentTrackIndex];
-        const fileName = trackPath.split('/').pop();
-        const info = this.trackInfo[fileName] || {
-            title: fileName.replace('.mp3', ''),
-            artist: 'Unknown Artist',
-            genre: 'Music'
-        };
+        const track = this.currentPlaylist[this.currentTrackIndex];
+        if (!track) return;
 
-        console.log('🎧 Loading track:', info.title, 'by', info.artist);
+        console.log('🎧 Loading:', track.title, 'by', track.artist, '|', track.url);
 
         // Update UI immediately
-        this.updateTrackUI(info);
-        this.showLoadingState();
+        this.updateTrackUI(track);
+        this.showLoadingState(true);
+        this.setWaveformPlaying(false);
 
-        // Create new Howler instance with error handling
         this.currentTrack = new Howl({
-            src: [trackPath],
-            volume: this.currentVolume,
-            html5: true, // Use HTML5 audio for better compatibility
+            src: [track.url],
+            volume: this.isMuted ? 0 : this.currentVolume,
+            html5: true,
             onload: () => {
-                console.log('✅ Track loaded successfully');
-                this.hideLoadingState();
-                this.updateTrackDuration();
+                console.log('✅ Loaded:', track.title);
+                this.showLoadingState(false);
+                this.updateDuration();
             },
             onplay: () => {
-                console.log('▶️ Track started playing');
                 this.isPlaying = true;
                 this.updatePlayButton();
+                this.setWaveformPlaying(true);
                 this.startProgressUpdate();
             },
             onpause: () => {
-                console.log('⏸️ Track paused');
                 this.isPlaying = false;
                 this.updatePlayButton();
+                this.setWaveformPlaying(false);
+                if (this.progressInterval) clearInterval(this.progressInterval);
+            },
+            onstop: () => {
+                this.isPlaying = false;
+                this.updatePlayButton();
+                this.setWaveformPlaying(false);
+                if (this.progressInterval) clearInterval(this.progressInterval);
             },
             onend: () => {
-                console.log('⏭️ Track ended, playing next');
-                this.nextTrack();
-            },
-            onloaderror: (id, error) => {
-                console.error('❌ Failed to load:', trackPath, error);
-                this.hideLoadingState();
-                this.showError(`Cannot play "${info.title}". Check if the file exists!`);
-
-                // Try next track if available
-                if (this.currentPlaylist.length > 1) {
-                    setTimeout(() => this.nextTrack(), 2000);
+                console.log('⏭️ Track ended');
+                if (this.isRepeat) {
+                    this.currentTrack.play();
+                } else {
+                    this.nextTrack();
                 }
             },
-            onplayerror: (id, error) => {
-                console.error('❌ Play error:', error);
-                this.showError('Playback error! Trying next track...');
-                setTimeout(() => this.nextTrack(), 1000);
+            onloaderror: (id, err) => {
+                console.error('❌ Load error:', track.url, err);
+                this.showLoadingState(false);
+                this.showError(`Could not load "${track.title}". Skipping to next track…`);
+                if (this.currentPlaylist.length > 1) {
+                    setTimeout(() => this.nextTrack(), 1500);
+                }
+            },
+            onplayerror: (id, err) => {
+                console.error('❌ Play error:', err);
+                this.currentTrack?.once('unlock', () => { this.currentTrack?.play(); });
             }
         });
 
-        // Auto-play with small delay
-        setTimeout(() => {
-            if (this.currentTrack) {
-                this.currentTrack.play();
-            }
-        }, 200);
+        setTimeout(() => this.currentTrack?.play(), 150);
     }
 
-    updateTrackUI(info) {
-        const trackTitle = document.getElementById('trackTitle');
-        const trackArtist = document.getElementById('trackArtist');
-        const trackGenre = document.getElementById('trackGenre');
-
-        if (trackTitle) trackTitle.textContent = info.title;
-        if (trackArtist) trackArtist.textContent = info.artist;
-        if (trackGenre) trackGenre.textContent = info.genre;
-    }
-
+    // -------------------------------------------------------------------------
+    // PLAYER CONTROLS
+    // -------------------------------------------------------------------------
     togglePlayPause() {
-        if (!this.currentTrack) {
-            this.showError('No track loaded! 🎵');
-            return;
-        }
-
+        if (!this.currentTrack) return;
         if (this.isPlaying) {
             this.currentTrack.pause();
         } else {
@@ -496,278 +511,280 @@ class MoodiO {
     }
 
     nextTrack() {
-        if (this.currentPlaylist.length === 0) return;
-
+        if (!this.currentPlaylist.length) return;
         this.currentTrackIndex = (this.currentTrackIndex + 1) % this.currentPlaylist.length;
-        console.log('⏭️ Next track:', this.currentTrackIndex + 1, '/', this.currentPlaylist.length);
         this.loadAndPlayTrack();
     }
 
     previousTrack() {
-        if (this.currentPlaylist.length === 0) return;
-
-        this.currentTrackIndex = this.currentTrackIndex === 0 ?
-            this.currentPlaylist.length - 1 : this.currentTrackIndex - 1;
-        console.log('⏮️ Previous track:', this.currentTrackIndex + 1, '/', this.currentPlaylist.length);
+        if (!this.currentPlaylist.length) return;
+        // If past 3 seconds, restart current track
+        if (this.currentTrack && this.currentTrack.seek() > 3) {
+            this.currentTrack.seek(0);
+            return;
+        }
+        this.currentTrackIndex = this.currentTrackIndex === 0
+            ? this.currentPlaylist.length - 1
+            : this.currentTrackIndex - 1;
         this.loadAndPlayTrack();
     }
 
-    setVolume(e) {
-        const slider = e.currentTarget;
-        const rect = slider.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const percentage = Math.max(0, Math.min(1, x / rect.width));
-
-        this.currentVolume = percentage;
-
-        if (this.currentTrack) {
-            this.currentTrack.volume(this.currentVolume);
+    toggleShuffle() {
+        this.isShuffle = !this.isShuffle;
+        const btn = document.getElementById('shuffleBtn');
+        if (btn) {
+            btn.classList.toggle('active-toggle', this.isShuffle);
+            btn.title = this.isShuffle ? 'Shuffle ON' : 'Shuffle OFF';
         }
-
-        this.updateVolumeUI();
-        console.log('🔊 Volume set to:', Math.round(percentage * 100) + '%');
+        if (this.isShuffle && this.currentPlaylist.length) {
+            this.shuffleArray(this.currentPlaylist);
+            this.currentTrackIndex = 0;
+        }
+        this.showTemporaryMessage(this.isShuffle ? '🔀 Shuffle ON' : '🔀 Shuffle OFF');
     }
 
-    updateVolumeUI() {
-        const volumePercentage = Math.round(this.currentVolume * 100);
-        const volumeFill = document.querySelector('.volume-fill');
-        const volumeText = document.querySelector('.volume-control span:last-child');
-
-        if (volumeFill) {
-            volumeFill.style.width = `${volumePercentage}%`;
+    toggleRepeat() {
+        this.isRepeat = !this.isRepeat;
+        const btn = document.getElementById('repeatBtn');
+        if (btn) {
+            btn.classList.toggle('active-toggle', this.isRepeat);
+            btn.title = this.isRepeat ? 'Repeat ON' : 'Repeat OFF';
         }
+        this.showTemporaryMessage(this.isRepeat ? '🔁 Repeat ON' : '🔁 Repeat OFF');
+    }
 
-        if (volumeText) {
-            volumeText.textContent = `${volumePercentage}%`;
+    toggleMute() {
+        this.isMuted = !this.isMuted;
+        const vol = this.isMuted ? 0 : this.currentVolume;
+        if (this.currentTrack) this.currentTrack.volume(vol);
+        const btn = document.getElementById('muteBtn');
+        if (btn) btn.textContent = this.isMuted ? '🔇' : '🔊';
+        this.updateVolumeUI();
+    }
+
+    // -------------------------------------------------------------------------
+    // UI UPDATE HELPERS
+    // -------------------------------------------------------------------------
+    updateTrackUI(track) {
+        document.getElementById('trackTitle').textContent = track.title;
+        document.getElementById('trackArtist').textContent = track.artist;
+        document.getElementById('trackGenre').textContent = track.genre;
+        document.getElementById('albumEmoji').textContent = track.emoji || '🎵';
+
+        const art = document.getElementById('albumArt');
+        if (art) art.style.background = track.color || 'linear-gradient(135deg, #9b59b6, #8e44ad)';
+
+        this.updatePlaylistInfo();
+    }
+
+    updatePlaylistInfo() {
+        const el = document.getElementById('playlistInfo');
+        if (el) {
+            el.textContent = `Track ${this.currentTrackIndex + 1} of ${this.currentPlaylist.length}`;
         }
     }
 
     updatePlayButton() {
-        const playBtn = document.querySelector('.play-btn');
-        if (playBtn) {
-            playBtn.textContent = this.isPlaying ? '⏸️' : '▶️';
-            playBtn.style.transform = this.isPlaying ? 'scale(1.1)' : 'scale(1)';
-        }
+        const btn = document.getElementById('playPauseBtn');
+        if (btn) btn.textContent = this.isPlaying ? '⏸' : '▶';
     }
 
-    showLoadingState() {
-        const albumArt = document.querySelector('.album-art');
-        const loadingDots = document.querySelector('.loading-dots');
-
-        if (albumArt) albumArt.classList.add('loading');
-        if (loadingDots) loadingDots.style.display = 'block';
+    setWaveformPlaying(playing) {
+        const wf = document.getElementById('waveform');
+        if (wf) wf.classList.toggle('playing', playing);
     }
 
-    hideLoadingState() {
-        const albumArt = document.querySelector('.album-art');
-        const loadingDots = document.querySelector('.loading-dots');
-
-        if (albumArt) albumArt.classList.remove('loading');
-        if (loadingDots) loadingDots.style.display = 'none';
+    showLoadingState(show) {
+        const art = document.getElementById('albumArt');
+        const dots = document.getElementById('loadingDots');
+        if (art) art.classList.toggle('loading', show);
+        if (dots) dots.style.display = show ? 'flex' : 'none';
     }
 
-    updateTrackDuration() {
+    updateDuration() {
         if (!this.currentTrack) return;
-
-        const duration = this.currentTrack.duration();
-        if (duration && duration > 0) {
-            const minutes = Math.floor(duration / 60);
-            const seconds = Math.floor(duration % 60);
-            const timeElements = document.querySelectorAll('.time');
-            if (timeElements[1]) {
-                timeElements[1].textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            }
+        const dur = this.currentTrack.duration();
+        if (dur > 0) {
+            document.getElementById('timeDuration').textContent = this.formatTime(dur);
         }
     }
 
     startProgressUpdate() {
-        if (this.progressInterval) {
-            clearInterval(this.progressInterval);
-        }
-
+        if (this.progressInterval) clearInterval(this.progressInterval);
         this.progressInterval = setInterval(() => {
-            if (!this.currentTrack || !this.isPlaying) return;
-
+            if (!this.currentTrack || !this.isPlaying || this.isDraggingProgress) return;
             const seek = this.currentTrack.seek() || 0;
-            const duration = this.currentTrack.duration();
-
-            if (duration > 0) {
-                const progress = (seek / duration) * 100;
-                const progressFill = document.querySelector('.progress-fill');
-                if (progressFill) {
-                    progressFill.style.width = `${progress}%`;
-                }
-
-                const minutes = Math.floor(seek / 60);
-                const seconds = Math.floor(seek % 60);
-                const timeElements = document.querySelectorAll('.time');
-                if (timeElements[0]) {
-                    timeElements[0].textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                }
-            }
-        }, 1000);
+            const dur = this.currentTrack.duration() || 1;
+            const pct = (seek / dur) * 100;
+            this.updateProgressUI(pct);
+            document.getElementById('timeElapsed').textContent = this.formatTime(seek);
+        }, 500);
     }
 
+    updateProgressUI(pct) {
+        const fill = document.getElementById('progressFill');
+        const thumb = document.getElementById('progressThumb');
+        if (fill) fill.style.width = `${pct}%`;
+        if (thumb) thumb.style.left = `${pct}%`;
+        const bar = document.getElementById('progressBar');
+        if (bar) bar.setAttribute('aria-valuenow', Math.round(pct));
+    }
+
+    updateVolumeUI() {
+        const pct = this.isMuted ? 0 : Math.round(this.currentVolume * 100);
+        const fill = document.getElementById('volumeFill');
+        const thumb = document.getElementById('volumeThumb');
+        const text = document.getElementById('volumeText');
+        const slider = document.getElementById('volumeSlider');
+        if (fill) fill.style.width = `${pct}%`;
+        if (thumb) thumb.style.left = `${pct}%`;
+        if (text) text.textContent = `${pct}%`;
+        if (slider) slider.setAttribute('aria-valuenow', pct);
+    }
+
+    // -------------------------------------------------------------------------
+    // CARD NAVIGATION
+    // -------------------------------------------------------------------------
     showCard(cardId) {
-        // Hide all cards first
-        document.querySelectorAll('.card').forEach(card => {
-            card.classList.add('hidden');
-        });
-
-        // Show target card with animation
-        const targetCard = document.getElementById(cardId);
-        if (targetCard) {
-            targetCard.classList.remove('hidden');
-            if (cardId === "playerCard") {
-                targetCard.classList.add('block');
-            } else {
-                targetCard.classList.add('block', 'animate-slide-up');
-            }
+        document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
+        const target = document.getElementById(cardId);
+        if (target) {
+            target.classList.remove('hidden');
+            target.style.animation = 'none';
+            requestAnimationFrame(() => {
+                target.style.animation = '';
+                target.classList.add('card-appear');
+                setTimeout(() => target.classList.remove('card-appear'), 600);
+            });
         }
-
-        // Scroll to top smoothly
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     resetToMoodSelection() {
-        console.log('🔄 Resetting to mood selection');
-
-        // Stop current track
         if (this.currentTrack) {
             this.currentTrack.stop();
             this.currentTrack.unload();
             this.currentTrack = null;
         }
+        if (this.progressInterval) clearInterval(this.progressInterval);
 
-        // Clear progress interval
-        if (this.progressInterval) {
-            clearInterval(this.progressInterval);
-        }
-
-        // Reset state
         this.currentMood = null;
         this.isPlaying = false;
         this.currentPlaylist = [];
         this.currentTrackIndex = 0;
 
-        // Clear input
-        const moodInput = document.getElementById('moodInput');
-        if (moodInput) {
-            moodInput.value = '';
-        }
+        document.getElementById('moodInput').value = '';
+        document.getElementById('refineInput').value = '';
+        document.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
 
-        // Reset rating buttons
-        document.querySelectorAll('.rating-btn').forEach(btn => {
-            btn.classList.remove('selected');
-        });
+        const gen = document.getElementById('generateMusicBtn');
+        if (gen) { gen.disabled = true; gen.style.opacity = '0.5'; }
 
-        // Reset generate button
-        const generateBtn = document.getElementById('generateMusicBtn');
-        if (generateBtn) {
-            generateBtn.disabled = true;
-            generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            generateBtn.style.transform = 'scale(1)';
-        }
-
-        // Hide other cards and show mood selection
-        document.getElementById('analysisCard')?.classList.add('hidden');
-        document.getElementById('playerCard')?.classList.add('hidden');
-        document.getElementById('errorMessage')?.classList.add('hidden');
+        this.updateProgressUI(0);
+        document.getElementById('timeElapsed').textContent = '0:00';
+        document.getElementById('timeDuration').textContent = '0:00';
+        this.setWaveformPlaying(false);
 
         this.showCard('moodCard');
-
-        // Reset to mood buttons tab
         this.switchTab('mood');
     }
 
-    // Utility functions
-    shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
+    // -------------------------------------------------------------------------
+    // ERROR / TOAST MESSAGES
+    // -------------------------------------------------------------------------
+    showError(msg) {
+        const el = document.getElementById('errorMessage');
+        const txt = document.getElementById('errorText');
+        if (el && txt) {
+            txt.textContent = msg;
+            el.classList.remove('hidden');
+            clearTimeout(this._errorTimer);
+            this._errorTimer = setTimeout(() => this.hideError(), 6000);
+        }
+        console.error('❌', msg);
+    }
+
+    hideError() {
+        document.getElementById('errorMessage')?.classList.add('hidden');
+    }
+
+    showTemporaryMessage(msg) {
+        const el = document.createElement('div');
+        el.className = 'toast-message';
+        el.textContent = msg;
+        document.body.appendChild(el);
+        requestAnimationFrame(() => el.classList.add('toast-visible'));
+        setTimeout(() => {
+            el.classList.remove('toast-visible');
+            setTimeout(() => el.remove(), 400);
+        }, 2800);
+    }
+
+    // -------------------------------------------------------------------------
+    // KEYBOARD SHORTCUTS
+    // -------------------------------------------------------------------------
+    handleKeydown(e) {
+        if (!this.currentTrack) return;
+        if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+        switch (e.code) {
+            case 'Space':
+                e.preventDefault();
+                this.togglePlayPause();
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                this.nextTrack();
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                this.previousTrack();
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                this.currentVolume = Math.min(1, this.currentVolume + 0.1);
+                if (this.currentTrack) this.currentTrack.volume(this.currentVolume);
+                this.updateVolumeUI();
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                this.currentVolume = Math.max(0, this.currentVolume - 0.1);
+                if (this.currentTrack) this.currentTrack.volume(this.currentVolume);
+                this.updateVolumeUI();
+                break;
+            case 'KeyM':
+                this.toggleMute();
+                break;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // UTILITIES
+    // -------------------------------------------------------------------------
+    formatTime(secs) {
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
+            [arr[i], arr[j]] = [arr[j], arr[i]];
         }
-    }
-
-    showError(message) {
-        const errorElement = document.getElementById('errorMessage');
-        if (errorElement) {
-            errorElement.querySelector('p').textContent = message;
-            errorElement.classList.remove('hidden');
-
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                errorElement.classList.add('hidden');
-            }, 5000);
-        }
-        console.error('❌ Error:', message);
-    }
-
-    showTemporaryMessage(message) {
-        // Create temporary message element
-        const msgElement = document.createElement('div');
-        msgElement.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
-                    color: white;
-                    padding: 15px 25px;
-                    border-radius: 25px;
-                    z-index: 1000;
-                    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
-                    font-weight: bold;
-                    transition: all 0.3s ease;
-                `;
-        msgElement.textContent = message;
-        document.body.appendChild(msgElement);
-
-        // Animate in
-        setTimeout(() => {
-            msgElement.style.transform = 'translateX(-50%) translateY(0)';
-        }, 100);
-
-        // Remove after 3 seconds
-        setTimeout(() => {
-            msgElement.style.transform = 'translateX(-50%) translateY(-100px)';
-            msgElement.style.opacity = '0';
-            setTimeout(() => {
-                document.body.removeChild(msgElement);
-            }, 300);
-        }, 3000);
     }
 }
 
-// Initialize the app when DOM is loaded
+// ---------------------------------------------------------------------------
+// BOOT
+// ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Starting MoodiO...');
+    console.log('🚀 Starting MoodiO…');
     window.moodiO = new MoodiO();
 });
 
-// Add keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-    if (!window.moodiO?.currentTrack) return;
-
-    switch (e.code) {
-        case 'Space':
-            e.preventDefault();
-            window.moodiO.togglePlayPause();
-            break;
-        case 'ArrowRight':
-            e.preventDefault();
-            window.moodiO.nextTrack();
-            break;
-        case 'ArrowLeft':
-            e.preventDefault();
-            window.moodiO.previousTrack();
-            break;
-    }
-});
-
-// Prevent page unload during playback
-window.addEventListener('beforeunload', (e) => {
+window.addEventListener('beforeunload', e => {
     if (window.moodiO?.isPlaying) {
         e.preventDefault();
-        e.returnValue = 'Music is currently playing. Are you sure you want to leave?';
+        e.returnValue = 'Music is playing. Leave anyway?';
     }
 });
