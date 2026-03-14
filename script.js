@@ -13,12 +13,12 @@ import { GEMINI_API_KEY, GEMINI_MODEL } from './config.js';
 // ---------------------------------------------------------------------------
 // HearThis.at API mood → category mapping
 const HEARTHIS_MAPPING = {
-    happy: 'happy',
-    sad: 'ambient',
+    happy: 'pop',
+    sad: 'classical',
     energetic: 'dance',
     chill: 'chillout',
-    romantic: 'love',
-    nostalgic: 'retro'
+    romantic: 'rnb',
+    nostalgic: 'indie'
 };
 
 // Gradient colors per mood
@@ -387,7 +387,14 @@ class MoodiO {
         try {
             // Fetch from HearThis.at API
             const category = HEARTHIS_MAPPING[this.currentMood] || 'popular';
-            const response = await fetch(`https://api-v2.hearthis.at/feed/?type=${category}&count=20`);
+            
+            // The feed endpoint only works for 'popular' or 'new'. For genres like 'chillout', we must use the categories endpoint.
+            let apiUrl = `https://api-v2.hearthis.at/categories/${category}/?page=1&count=20`;
+            if (category === 'popular') {
+                apiUrl = `https://api-v2.hearthis.at/feed/?type=popular&count=20`;
+            }
+            
+            const response = await fetch(apiUrl);
 
             if (!response.ok) throw new Error("API Limit reached or network error");
 
