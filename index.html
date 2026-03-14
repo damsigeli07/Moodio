@@ -63,7 +63,9 @@
                     <button class="mood-btn chill" data-mood="chill" id="btn-chill">😎 Chill</button>
                     <button class="mood-btn romantic" data-mood="romantic" id="btn-romantic">💕 Romantic</button>
                     <button class="mood-btn nostalgic" data-mood="nostalgic" id="btn-nostalgic">📺 Nostalgic</button>
+                    <button class="mood-btn random" data-mood="random" id="btn-random">🎲 Surprise Me</button>
                 </div>
+                <p class="mood-tip" id="moodTip">Tip: Pick a mood or use Surprise Me — then tweak intensity & genre before generating.</p>
             </div>
 
             <!-- TAB: Text Input -->
@@ -99,6 +101,26 @@
                 <button class="rating-btn" data-rating="bad" id="rating-bad">😞 Not at all</button>
                 <button class="rating-btn" data-rating="okay" id="rating-okay">😐 Kind of</button>
                 <button class="rating-btn" data-rating="perfect" id="rating-perfect">😍 Perfect match!</button>
+            </div>
+
+            <!-- Mood intensity -->
+            <div class="mood-intensity-section">
+                <label class="intensity-label">How strong is this vibe? <span id="intensityValue">3</span>/5</label>
+                <input type="range" id="moodIntensity" class="intensity-slider" min="1" max="5" value="3" aria-label="Mood intensity">
+            </div>
+
+            <!-- Genre filter (optional) -->
+            <div class="genre-filter-section">
+                <p class="genre-label">Narrow by genre <span class="genre-hint">(optional)</span></p>
+                <div class="genre-chips" role="group" aria-label="Genre filter">
+                    <button type="button" class="genre-chip active" data-genre="">Any</button>
+                    <button type="button" class="genre-chip" data-genre="pop">Pop</button>
+                    <button type="button" class="genre-chip" data-genre="chillout">Chill</button>
+                    <button type="button" class="genre-chip" data-genre="dance">Dance</button>
+                    <button type="button" class="genre-chip" data-genre="rnb">R&B</button>
+                    <button type="button" class="genre-chip" data-genre="indie">Indie</button>
+                    <button type="button" class="genre-chip" data-genre="classical">Classical</button>
+                </div>
             </div>
 
             <!-- Refine input (shown when user says "Not at all") -->

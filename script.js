@@ -1,10 +1,9 @@
 /**
  * MoodiO – AI DJ: Mood-to-Music Generator
- * Uses Gemini AI for mood analysis and Howler.js for audio playback.
+ * Uses Gemini AI for mood analysis (via a PHP backend proxy) and Howler.js for audio playback.
  * Free Creative Commons / royalty-free MP3 streams — no local files needed.
  */
 
-import { GEMINI_API_KEY, GEMINI_MODEL } from './config.js';
 
 // ---------------------------------------------------------------------------
 // FREE STREAMING MUSIC LIBRARY (Creative Commons / Royalty-Free MP3 URLs)
@@ -21,14 +20,14 @@ const HEARTHIS_MAPPING = {
     nostalgic: 'indie'
 };
 
-// Gradient colors per mood
+// Gradient colors per mood (softer cyber-neon, match button style)
 const MOOD_COLORS = {
-    happy: 'linear-gradient(135deg, #ff6b9d, #ffdd59)',
-    sad: 'linear-gradient(135deg, #74b9ff, #0984e3)',
-    energetic: 'linear-gradient(135deg, #fd79a8, #fdcb6e)',
-    chill: 'linear-gradient(135deg, #55efc4, #00b894)',
-    romantic: 'linear-gradient(135deg, #fd79a8, #9b59b6)',
-    nostalgic: 'linear-gradient(135deg, #a29bfe, #6c5ce7)'
+    happy: 'linear-gradient(135deg, #fcd34d, #fbbf24)',
+    sad: 'linear-gradient(135deg, #7dd3fc, #38bdf8)',
+    energetic: 'linear-gradient(135deg, #fca5a5, #f87171)',
+    chill: 'linear-gradient(135deg, #6ee7b7, #34d399)',
+    romantic: 'linear-gradient(135deg, #fbcfe8, #f472b6)',
+    nostalgic: 'linear-gradient(135deg, #c4b5fd, #818cf8)'
 };
 
 const MOOD_EMOJIS = {
@@ -86,6 +85,8 @@ class MoodiO {
         this.progressInterval = null;
         this.isDraggingProgress = false;
         this.isDraggingVolume = false;
+        this.currentIntensity = 3;       // 1-5 mood strength
+        this.selectedGenre = '';        // '' = any, or pop/chillout/dance/rnb/indie/classical
 
         this.init();
     }
@@ -143,6 +144,25 @@ class MoodiO {
 
         // Error close
         document.getElementById('errorCloseBtn')?.addEventListener('click', () => this.hideError());
+
+        // Mood intensity slider
+        const intensityEl = document.getElementById('moodIntensity');
+        const intensityValueEl = document.getElementById('intensityValue');
+        if (intensityEl && intensityValueEl) {
+            intensityEl.addEventListener('input', () => {
+                this.currentIntensity = parseInt(intensityEl.value, 10);
+                intensityValueEl.textContent = intensityEl.value;
+            });
+        }
+
+        // Genre filter chips
+        document.querySelectorAll('.genre-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.genre-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                this.selectedGenre = chip.dataset.genre || '';
+            });
+        });
 
         // Seekable progress bar
         this.bindProgressBar();
@@ -235,6 +255,10 @@ class MoodiO {
     // MOOD SELECTION (button clicks)
     // -------------------------------------------------------------------------
     selectMood(mood) {
+        if (mood === 'random') {
+            const options = ['happy', 'sad', 'energetic', 'chill', 'romantic', 'nostalgic'];
+            mood = options[Math.floor(Math.random() * options.length)];
+        }
         console.log('🎯 Mood selected:', mood);
         this.currentMood = mood;
         this.showMoodAnalysis(mood);
@@ -259,21 +283,21 @@ class MoodiO {
         if (spinner) spinner.classList.remove('hidden');
 
         try {
-            const prompt = `Analyze the following text and categorize the mood into exactly one of these six categories: "happy", "sad", "energetic", "chill", "romantic", or "nostalgic". Reply with ONLY the exact single word, no punctuation, no explanation.\n\nText: "${input}"`;
+            // Call backend PHP proxy which talks to Gemini securely with the API key.
+            const response = await fetch('analyze_mood.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: input })
+            });
 
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                }
-            );
+            const data = await response.json().catch(() => null);
 
-            if (!response.ok) throw new Error(`API error: ${response.status}`);
+            if (!response.ok) {
+                const msg = data?.error || `API error: ${response.status}`;
+                throw new Error(msg);
+            }
 
-            const data = await response.json();
-            let detectedMood = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase() || '';
+            let detectedMood = (data && data.mood ? data.mood : '').trim().toLowerCase();
 
             const validMoods = ['happy', 'sad', 'energetic', 'chill', 'romantic', 'nostalgic'];
             if (!validMoods.includes(detectedMood)) {
@@ -287,7 +311,11 @@ class MoodiO {
 
         } catch (err) {
             console.error('Gemini API error:', err);
-            this.showError('Could not reach Gemini AI. Please check your API key or internet connection. 🤖');
+            const msg =
+                (err && typeof err === 'object' && 'message' in err && typeof err.message === 'string' && err.message.trim())
+                    ? err.message.trim()
+                    : 'Could not reach Gemini AI. Please check your API key or internet connection.';
+            this.showError(msg);
         } finally {
             if (btn) btn.disabled = false;
             if (btnText) btnText.textContent = '💖 Analyze My Mood';
@@ -318,6 +346,18 @@ class MoodiO {
         // Hide refine section
         document.getElementById('refineSection')?.classList.add('hidden');
 
+        // Reset intensity and genre for this mood
+        this.currentIntensity = 3;
+        const intensitySlider = document.getElementById('moodIntensity');
+        const intensityValue = document.getElementById('intensityValue');
+        if (intensitySlider) intensitySlider.value = '3';
+        if (intensityValue) intensityValue.textContent = '3';
+        document.querySelectorAll('.genre-chip').forEach((c, i) => {
+            c.classList.toggle('active', i === 0);
+        });
+        this.selectedGenre = '';
+
+        this.applyMoodGlow(mood);
         this.showCard('analysisCard');
 
         // Bounce effect
@@ -385,10 +425,9 @@ class MoodiO {
         genBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finding tracks...';
 
         try {
-            // Fetch from HearThis.at API
-            const category = HEARTHIS_MAPPING[this.currentMood] || 'popular';
-            
-            // The feed endpoint only works for 'popular' or 'new'. For genres like 'chillout', we must use the categories endpoint.
+            // Genre filter overrides mood mapping when user picked a genre
+            const category = this.selectedGenre || HEARTHIS_MAPPING[this.currentMood] || 'popular';
+
             let apiUrl = `https://api-v2.hearthis.at/categories/${category}/?page=1&count=20`;
             if (category === 'popular') {
                 apiUrl = `https://api-v2.hearthis.at/feed/?type=popular&count=20`;
@@ -650,10 +689,23 @@ class MoodiO {
     }
 
     // -------------------------------------------------------------------------
-    // CARD NAVIGATION
+    // CARD NAVIGATION & AMBIENT MOOD GLOW
     // -------------------------------------------------------------------------
+    applyMoodGlow(mood) {
+        if (!mood) return;
+        document.body.classList.add('mood-glow');
+        document.body.classList.remove('mood-glow--happy', 'mood-glow--sad', 'mood-glow--energetic', 'mood-glow--chill', 'mood-glow--romantic', 'mood-glow--nostalgic');
+        document.body.classList.add(`mood-glow--${mood}`);
+    }
+
+    removeMoodGlow() {
+        document.body.classList.remove('mood-glow', 'mood-glow--happy', 'mood-glow--sad', 'mood-glow--energetic', 'mood-glow--chill', 'mood-glow--romantic', 'mood-glow--nostalgic');
+    }
+
     showCard(cardId) {
         document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
+        if (cardId === 'moodCard') this.removeMoodGlow();
+        else if (this.currentMood) this.applyMoodGlow(this.currentMood);
         const target = document.getElementById(cardId);
         if (target) {
             target.classList.remove('hidden');
@@ -679,10 +731,12 @@ class MoodiO {
         this.isPlaying = false;
         this.currentPlaylist = [];
         this.currentTrackIndex = 0;
+        this.selectedGenre = '';
 
         document.getElementById('moodInput').value = '';
         document.getElementById('refineInput').value = '';
         document.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
+        document.querySelectorAll('.genre-chip').forEach((c, i) => c.classList.toggle('active', i === 0));
 
         const gen = document.getElementById('generateMusicBtn');
         if (gen) { gen.disabled = true; gen.style.opacity = '0.5'; }
@@ -691,6 +745,7 @@ class MoodiO {
         document.getElementById('timeElapsed').textContent = '0:00';
         document.getElementById('timeDuration').textContent = '0:00';
         this.setWaveformPlaying(false);
+        this.removeMoodGlow();
 
         this.showCard('moodCard');
         this.switchTab('mood');
