@@ -10,14 +10,14 @@
 // Sources: Pixabay, Free Music Archive, Bensound (free tier), ccMixter
 // All tracks are freely usable for non-commercial/educational projects.
 // ---------------------------------------------------------------------------
-// HearThis.at API mood → category mapping
-const HEARTHIS_MAPPING = {
-    happy: 'pop',
-    sad: 'classical',
-    energetic: 'dance',
-    chill: 'chillout',
-    romantic: 'rnb',
-    nostalgic: 'indie'
+// iTunes Search API mood → search term mapping
+const ITUNES_MAPPING = {
+    happy: 'happy pop hits',
+    sad: 'sad acoustic',
+    energetic: 'workout dance',
+    chill: 'lofi chill',
+    romantic: 'romantic love songs',
+    nostalgic: '80s classic hits'
 };
 
 // Gradient colors per mood (softer cyber-neon, match button style)
@@ -426,32 +426,37 @@ class MoodiO {
 
         try {
             // Genre filter overrides mood mapping when user picked a genre
-            const category = this.selectedGenre || HEARTHIS_MAPPING[this.currentMood] || 'popular';
+            const searchTerm = this.selectedGenre || ITUNES_MAPPING[this.currentMood] || 'popular hits';
 
-            let apiUrl = `https://api-v2.hearthis.at/categories/${category}/?page=1&count=20`;
-            if (category === 'popular') {
-                apiUrl = `https://api-v2.hearthis.at/feed/?type=popular&count=20`;
-            }
+            let apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=song&limit=30`;
             
             const response = await fetch(apiUrl);
 
-            if (!response.ok) throw new Error("API Limit reached or network error");
+            if (!response.ok) throw new Error("Network error fetching from iTunes API");
 
-            const tracks = await response.json();
+            const data = await response.json();
+            const tracks = data.results;
 
             if (!tracks || !tracks.length) {
                 throw new Error("No tracks found for this mood");
             }
 
             // Map API response to our player format
-            this.currentPlaylist = tracks.map(t => ({
-                url: t.stream_url,
-                title: t.title,
-                artist: t.user.username,
-                genre: t.genre || this.currentMood,
-                emoji: MOOD_EMOJIS[this.currentMood],
-                color: MOOD_COLORS[this.currentMood]
-            }));
+            this.currentPlaylist = tracks
+                .filter(t => t.previewUrl) // Ensure track has a preview URL
+                .map(t => ({
+                    url: t.previewUrl,
+                    title: t.trackName,
+                    artist: t.artistName,
+                    genre: t.primaryGenreName || this.currentMood,
+                    emoji: MOOD_EMOJIS[this.currentMood],
+                    art: t.artworkUrl100 ? t.artworkUrl100.replace('100x100bb', '500x500bb') : null, // High-res artwork
+                    color: MOOD_COLORS[this.currentMood]
+                }));
+
+            if (this.currentPlaylist.length === 0) {
+                 throw new Error("Found tracks, but none had audio previews available.");
+            }
 
             if (this.isShuffle) this.shuffleArray(this.currentPlaylist);
             this.currentTrackIndex = 0;
@@ -618,7 +623,13 @@ class MoodiO {
         document.getElementById('albumEmoji').textContent = track.emoji || '🎵';
 
         const art = document.getElementById('albumArt');
-        if (art) art.style.background = track.color || 'linear-gradient(135deg, #9b59b6, #8e44ad)';
+        if (art) {
+            if (track.art) {
+                art.style.background = `url('${track.art}') center/cover no-repeat`;
+            } else {
+                art.style.background = track.color || 'linear-gradient(135deg, #9b59b6, #8e44ad)';
+            }
+        }
 
         this.updatePlaylistInfo();
     }
