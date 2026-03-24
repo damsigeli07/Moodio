@@ -25,31 +25,33 @@ if ($text === '') {
 $apiKey = getenv('GEMINI_API_KEY');
 if (!$apiKey) {
     $localConfig = @include __DIR__ . '/config.local.php';
-    // Check both GEMINI_API_KEY (for backward compatibility) and HF_API_KEY
-    $apiKey = is_array($localConfig) ? ($localConfig['HF_API_KEY'] ?? $localConfig['GEMINI_API_KEY'] ?? '') : '';
+    $apiKey = is_array($localConfig) ? ($localConfig['GEMINI_API_KEY'] ?? '') : '';
 }
 if (!$apiKey) {
     http_response_code(500);
-    echo json_encode(['error' => 'Hugging Face API key not configured in config.local.php.']);
+    echo json_encode(['error' => 'Gemini API key not configured in config.local.php.']);
     exit;
 }
 
-// Using a robust, supported chat model on Hugging Face Inference Providers
-$model = 'meta-llama/Llama-3.1-8B-Instruct';
+// Using the free quota supported model
+$model = 'gemini-3.1-flash-lite-preview';
 
 $prompt = sprintf(
     "Analyze the following text and categorize the mood into exactly one of these six categories: \"happy\", \"sad\", \"energetic\", \"chill\", \"romantic\", or \"nostalgic\". Reply with ONLY the exact single word, no punctuation, no explanation.\n\nText: \"%s\"",
     $text
 );
 
-$url = "https://router.huggingface.co/v1/chat/completions";
+$url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . $apiKey;
 
 $payload = json_encode([
-    'model' => $model,
-    'messages' => [
-        ['role' => 'user', 'content' => $prompt]
-    ],
-    'max_tokens' => 10,
+    'contents' => [
+        [
+            'role' => 'user',
+            'parts' => [
+                ['text' => $prompt]
+            ]
+        ]
+    ]
 ]);
 
 $ch = curl_init($url);
@@ -57,8 +59,7 @@ curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST => true,
     CURLOPT_HTTPHEADER => [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . $apiKey
+        'Content-Type: application/json'
     ],
     CURLOPT_POSTFIELDS => $payload,
     CURLOPT_TIMEOUT => 20,
@@ -68,7 +69,7 @@ $responseBody = curl_exec($ch);
 
 if ($responseBody === false) {
     http_response_code(502);
-    echo json_encode(['error' => 'Could not reach Hugging Face API: ' . curl_error($ch)]);
+    echo json_encode(['error' => 'Could not reach Gemini API: ' . curl_error($ch)]);
     curl_close($ch);
     exit;
 }
@@ -79,9 +80,9 @@ curl_close($ch);
 $apiData = json_decode($responseBody, true);
 
 if ($httpStatus < 200 || $httpStatus >= 300) {
-    $msg = "Unexpected error from Hugging Face API (HTTP $httpStatus). Response: " . $responseBody;
+    $msg = "Unexpected error from Gemini API (HTTP $httpStatus). Response: " . $responseBody;
     if (isset($apiData['error'])) {
-        $msg = is_array($apiData['error']) ? implode(', ', $apiData['error']) : (isset($apiData['error']['message']) ? $apiData['error']['message'] : $apiData['error']);
+        $msg = isset($apiData['error']['message']) ? $apiData['error']['message'] : (is_array($apiData['error']) ? implode(', ', $apiData['error']) : $apiData['error']);
         $msg .= " (HTTP $httpStatus)";
     }
     http_response_code($httpStatus);
@@ -90,9 +91,9 @@ if ($httpStatus < 200 || $httpStatus >= 300) {
 }
 
 $rawText = '';
-// OpenAI-compatible response format
-if (isset($apiData['choices'][0]['message']['content'])) {
-    $rawText = $apiData['choices'][0]['message']['content'];
+// Gemini-compatible response format
+if (isset($apiData['candidates'][0]['content']['parts'][0]['text'])) {
+    $rawText = $apiData['candidates'][0]['content']['parts'][0]['text'];
 }
 
 $mood = strtolower(trim($rawText));
