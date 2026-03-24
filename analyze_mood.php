@@ -34,7 +34,7 @@ if (!$apiKey) {
 }
 
 // Using the free quota supported model
-$model = 'gemini-3.1-flash-lite-preview';
+$model = 'gemini-2.5-flash-lite';
 
 $prompt = sprintf(
     "Analyze the following text and categorize the mood into exactly one of these six categories: \"happy\", \"sad\", \"energetic\", \"chill\", \"romantic\", or \"nostalgic\". Reply with ONLY the exact single word, no punctuation, no explanation.\n\nText: \"%s\"",
@@ -70,12 +70,10 @@ $responseBody = curl_exec($ch);
 if ($responseBody === false) {
     http_response_code(502);
     echo json_encode(['error' => 'Could not reach Gemini API: ' . curl_error($ch)]);
-    curl_close($ch);
     exit;
 }
 
 $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
 
 $apiData = json_decode($responseBody, true);
 
