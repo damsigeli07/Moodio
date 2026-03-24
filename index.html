@@ -10,258 +10,34 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'Arial', 'sans-serif'],
-                    },
-                    colors: {
-                        pink: '#ff6b9d',
-                        'pink-d': '#c44569',
-                        purple: '#9b59b6',
-                        'purple-d': '#6c5ce7',
-                        teal: '#00b894',
-                        blue: '#74b9ff',
-                        gold: '#fdcb6e',
-                    },
-                    boxShadow: {
-                        card: '0 15px 40px rgba(0, 0, 0, 0.18)',
-                    },
-                    animation: {
-                        blobFloat: 'blobFloat 12s ease-in-out infinite',
-                        fadeSlideDown: 'fadeSlideDown 0.6s ease-out',
-                        cardSlideUp: 'cardSlideUp 0.55s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    },
-                    keyframes: {
-                        blobFloat: {
-                            '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
-                            '33%': { transform: 'translate(30px, -30px) scale(1.05)' },
-                            '66%': { transform: 'translate(-20px, 20px) scale(0.97)' },
-                        },
-                        fadeSlideDown: {
-                            '0%': { opacity: 0, transform: 'translateY(-20px)' },
-                            '100%': { opacity: 1, transform: 'translateY(0)' },
-                        },
-                        cardSlideUp: {
-                            '0%': { opacity: 0, transform: 'translateY(40px) scale(0.98)' },
-                            '100%': { opacity: 1, transform: 'translateY(0) scale(1)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style type="text/tailwindcss">
-        @layer components {
-            .card {
-                @apply relative bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[20px] p-8 shadow-card transition-all duration-300;
-            }
-            .card.hidden {
-                @apply !hidden;
-            }
-            .card-appear {
-                @apply animate-cardSlideUp;
-            }
-            .card-header {
-                @apply text-center mb-6;
-            }
-            .card-header h2 {
-                @apply text-[22px] font-bold bg-gradient-to-tr from-[#33d192] to-[#3498db] bg-clip-text text-transparent mb-2;
-            }
-            .card-header p {
-                @apply text-sm opacity-75;
-            }
-
-            /* Input Tabs */
-            .input-tabs {
-                @apply flex bg-slate-900/75 rounded-[14px] p-1 mb-6 gap-1;
-            }
-            .tab-btn {
-                @apply flex-1 py-[11px] px-2 border-none bg-transparent text-slate-200/70 rounded-[10px] cursor-pointer transition-all duration-300 text-[13px] font-semibold hover:text-white hover:bg-white/10;
-            }
-            .tab-btn.active {
-                @apply bg-gradient-to-br from-pink to-purple text-white shadow-[0_4px_18px_rgba(127,93,255,0.55)];
-            }
-            .tab-content {
-                @apply hidden;
-            }
-            .tab-content.active {
-                @apply block animate-[fadeIn_0.3s_ease];
-            }
-
-            /* Mood Buttons */
-            .mood-buttons {
-                @apply grid grid-cols-2 gap-3.5;
-            }
-            .mood-btn {
-                @apply py-5 px-4 border-none rounded-[14px] text-white font-bold text-base cursor-pointer tracking-[0.3px] relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(0,0,0,0.25)] active:-translate-y-[1px];
-            }
-            .mood-btn::before {
-                content: '';
-                @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full transition-transform duration-500;
-            }
-            .mood-btn:hover::before {
-                @apply translate-x-full;
-            }
-            .mood-btn.happy { @apply bg-gradient-to-br from-orange-300/90 to-amber-300/85 text-slate-800 border border-white/25; }
-            .mood-btn.sad { @apply bg-gradient-to-br from-sky-300/85 to-sky-400/80 text-slate-900 border border-white/20; }
-            .mood-btn.energetic { @apply bg-gradient-to-br from-red-300/90 to-red-400/85 text-slate-800 border border-white/25; }
-            .mood-btn.chill { @apply bg-gradient-to-br from-emerald-300/85 to-emerald-400/80 text-teal-950 border border-white/20; }
-            .mood-btn.romantic { @apply bg-gradient-to-br from-pink-300/90 to-pink-400/80 text-slate-800 border border-white/25; }
-            .mood-btn.nostalgic { @apply bg-gradient-to-br from-violet-300/85 to-indigo-400/80 text-indigo-950 border border-white/20; }
-            .mood-btn.random { @apply bg-gradient-to-br from-orange-300/85 to-orange-400/80 text-slate-800 border border-white/25; }
-            
-            .mood-tip {
-                @apply mt-3.5 text-xs opacity-70 text-center leading-[1.4];
-            }
-
-            /* Text Input */
-            .text-input-container {
-                @apply flex flex-col gap-3.5;
-            }
-            
-            textarea#moodInput {
-                @apply p-[16px_18px] border-[1.5px] border-white/25 rounded-[14px] bg-white/15 text-white text-[15px] resize-y outline-none transition-all duration-300 leading-relaxed placeholder-white/50 focus:bg-white/20 focus:border-white/50 focus:shadow-[0_0_0_3px_rgba(255,107,157,0.25)];
-            }
-
-            #analyzeMoodBtn {
-                @apply flex items-center justify-center gap-2 p-[15px] border-none rounded-[14px] bg-gradient-to-tr from-pink to-pink-d text-white text-[15px] font-bold cursor-pointer transition-all duration-300 shadow-[0_6px_16px_rgba(255,107,157,0.35)] hover:-translate-y-[3px] hover:shadow-[0_12px_28px_rgba(255,107,157,0.5)] disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none;
-            }
-
-            .btn-spinner {
-                @apply text-lg animate-[spin_1.2s_linear_infinite];
-            }
-
-            /* Analysis Result */
-            .analysis-result {
-                @apply bg-white/10 rounded-[16px] p-7 mb-6 text-center transition-transform duration-300;
-            }
-            #moodIconDisplay {
-                @apply text-[64px] mb-3.5 block animate-[floatIcon_3s_ease-in-out_infinite];
-            }
-            .analysis-result p {
-                @apply text-[15px] leading-relaxed opacity-90;
-            }
-            .match-question {
-                @apply text-base font-semibold text-center mb-[18px] opacity-90;
-            }
-
-            /* Rating Buttons */
-            .rating-buttons {
-                @apply flex gap-3 mb-6;
-            }
-            .rating-btn {
-                @apply flex-1 py-[13px] px-2 border-2 border-white/20 rounded-xl text-white font-semibold text-[13px] cursor-pointer transition-all duration-300 bg-white/10 hover:-translate-y-0.5 hover:bg-white/20 hover:border-white/40;
-            }
-            .rating-btn.selected {
-                @apply bg-gradient-to-tr from-pink to-pink-d border-pink shadow-[0_6px_16px_rgba(255,107,157,0.4)] -translate-y-0.5;
-            }
-
-            /* Sliders */
-            .mood-intensity-section { @apply mb-5; }
-            .intensity-label { @apply block text-sm font-semibold opacity-90 mb-2; }
-            .intensity-slider { @apply w-full h-2 appearance-none bg-white/15 rounded-lg outline-none; }
-            .intensity-slider::-webkit-slider-thumb {
-                @apply appearance-none w-5 h-5 rounded-full bg-gradient-to-br from-pink to-purple cursor-pointer shadow-[0_2px_10px_rgba(127,93,255,0.5)] transition-transform duration-200 hover:scale-110;
-            }
-
-            /* Genre Chips */
-            .genre-filter-section { @apply mb-5; }
-            .genre-label { @apply text-sm font-semibold opacity-90 mb-2.5; }
-            .genre-hint { @apply font-normal opacity-65 text-xs; }
-            .genre-chips { @apply flex flex-wrap gap-2; }
-            .genre-chip { @apply py-2 px-3.5 rounded-full border border-white/25 bg-white/10 text-white/90 text-[13px] font-semibold cursor-pointer transition-all duration-300 hover:bg-white/20 hover:border-white/40; }
-            .genre-chip.active { @apply bg-gradient-to-br from-pink to-purple border-transparent text-white shadow-[0_4px_14px_rgba(127,93,255,0.4)]; }
-
-            /* Refine Section (Feedback) */
-            .refine-section { @apply bg-white/10 border border-white/20 rounded-[14px] p-5 mb-5 animate-[fadeIn_0.3s_ease]; }
-            .refine-prompt { @apply font-semibold text-sm mb-3 opacity-90; }
-            textarea#refineInput { @apply w-full p-[12px_16px] border-[1.5px] border-white/20 rounded-xl bg-white/10 text-white text-sm resize-y outline-none transition-all duration-300 mb-3 placeholder-white/50 focus:border-white/45 focus:bg-white/20; }
-            #refineBtn { @apply w-full p-3 border-none rounded-xl bg-gradient-to-tr from-purple to-purple-d text-white font-bold text-sm cursor-pointer transition-all duration-300 shadow-[0_4px_14px_rgba(108,92,231,0.35)] hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(108,92,231,0.5)]; }
-
-            /* Card Actions */
-            .card-actions { @apply flex gap-3.5; }
-            .generate-btn, .back-btn { @apply flex-1 p-[15px] border-none rounded-[14px] text-white text-[15px] font-bold cursor-pointer transition-all duration-300; }
-            .generate-btn { @apply bg-gradient-to-tr from-purple to-purple-d shadow-[0_6px_16px_rgba(108,92,231,0.35)]; }
-            .generate-btn:not(:disabled):hover { @apply -translate-y-1 shadow-[0_12px_28px_rgba(108,92,231,0.5)]; }
-            .generate-btn:disabled { @apply opacity-50 cursor-not-allowed; }
-            .back-btn { @apply bg-white/15 border-[1.5px] border-white/20 hover:bg-white/25 hover:-translate-y-0.5; }
-            .full-width { @apply w-full flex-none; }
-
-            /* Player & Album Art */
-            .player-content { @apply text-center; }
-            .album-art-wrapper { @apply inline-block relative mb-2.5; }
-            .album-art { @apply w-[200px] h-[200px] sm:w-[230px] sm:h-[230px] rounded-[20px] mx-auto mb-1.5 flex items-center justify-center bg-gradient-to-br from-purple to-[#8e44ad] shadow-[0_20px_45px_rgba(0,0,0,0.3)] relative transition-colors duration-500 overflow-hidden; }
-            .album-art-emoji { @apply text-[72px] sm:text-[84px] z-[1] transition-transform duration-300 animate-[floatIcon_4s_ease-in-out_infinite]; }
-            .album-art.loading .album-art-emoji { @apply opacity-40; }
-
-            /* Track Info */
-            .track-info { @apply mb-3; }
-            .track-info h3 { @apply text-[22px] sm:text-[26px] font-bold mb-1.5 whitespace-nowrap overflow-hidden text-ellipsis; }
-            .track-info p { @apply text-[15px] opacity-75 mb-2.5; }
-            #trackGenre { @apply inline-block bg-gradient-to-tr from-pink to-pink-d py-1 px-4 rounded-full text-xs font-bold tracking-[0.5px]; }
-            .playlist-info { @apply text-xs opacity-60 font-medium mb-4 tracking-[0.5px]; }
-
-            /* Progress Bar */
-            .progress-bar { @apply flex items-center gap-3 mb-5; }
-            .time { @apply text-xs font-semibold opacity-70 min-w-[36px] tabular-nums; }
-            .progress { @apply flex-1 h-1.5 bg-white/20 rounded-[10px] cursor-pointer relative transition-all duration-200 hover:h-[9px]; }
-            .progress-fill { @apply h-full bg-gradient-to-r from-pink to-pink-d rounded-[10px] w-0 transition-all duration-300 linear pointer-events-none; }
-            .progress-thumb { @apply absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] opacity-0 transition-all duration-200 pointer-events-none; }
-            .progress:hover .progress-thumb { @apply opacity-100; }
-
-            /* Controls */
-            .player-controls { @apply flex justify-center items-center gap-4 border-none mb-5; }
-            .control-btn { @apply w-[52px] h-[52px] rounded-full bg-white/15 border-[1.5px] border-white/20 text-white text-[19px] cursor-pointer transition-all duration-300 flex items-center justify-center hover:scale-110 hover:bg-white/25; }
-            .play-btn { @apply w-[64px] h-[64px] bg-gradient-to-br from-pink to-pink-d border-transparent text-[22px] shadow-[0_8px_22px_rgba(255,107,157,0.45)] hover:shadow-[0_14px_32px_rgba(255,107,157,0.6)]; }
-            .icon-btn { @apply w-11 h-11 text-base opacity-65 hover:opacity-100; }
-            .active-toggle { @apply !bg-gradient-to-br !from-purple !to-purple-d !border-transparent !opacity-100 !shadow-[0_4px_14px_rgba(108,92,231,0.4)]; }
-
-            /* Volume slider */
-            .volume-control { @apply flex items-center justify-center gap-3 mb-6; }
-            .vol-icon-btn { @apply bg-none border-none cursor-pointer text-[18px] text-white p-1 opacity-80 transition-all duration-300 leading-none hover:opacity-100 hover:scale-[1.15]; }
-            .volume-slider { @apply w-[130px] h-1.5 bg-white/20 rounded-[10px] cursor-pointer relative transition-all duration-200 hover:h-[9px]; }
-            .volume-fill { @apply w-[75%] h-full bg-gradient-to-r from-pink to-pink-d rounded-[10px] pointer-events-none; }
-            .volume-thumb { @apply absolute top-1/2 left-[75%] -translate-x-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] opacity-0 pointer-events-none transition-all duration-200; }
-            .volume-slider:hover .volume-thumb { @apply opacity-100; }
-            #volumeText { @apply text-xs flex-none font-semibold opacity-70 min-w-[36px] text-left; }
-            
-            /* Toasts */
-            .toast-message { @apply fixed top-6 left-1/2 -translate-x-1/2 -translate-y-[60px] bg-gradient-to-br from-emerald-500/90 to-blue-500/90 backdrop-blur-md text-white py-3 px-[26px] rounded-full z-[9999] font-bold text-sm shadow-[0_10px_30px_rgba(16,185,129,0.35)] opacity-0 pointer-events-none whitespace-nowrap transition-all duration-[350ms] ease-out; }
-            .toast-message.toast-visible { @apply translate-y-0 opacity-100; }
-        }
-    </style>
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="font-sans min-h-screen bg-[linear-gradient(135deg,#ff6b9d_0%,#c44569_25%,#9b59b6_60%,#6c5ce7_100%)] bg-fixed text-white px-5 pt-5 pb-10 overflow-x-hidden relative transition-all duration-300 ease-out">
+<body>
     <!-- Animated background blobs -->
-    <div class="fixed rounded-full blur-[70px] opacity-25 pointer-events-none -z-10 animate-blobFloat w-[500px] h-[500px] bg-[radial-gradient(circle,#ff6b9d,#fdcb6e)] -top-[150px] -left-[150px] [animation-delay:0s]"></div>
-    <div class="fixed rounded-full blur-[70px] opacity-25 pointer-events-none -z-10 animate-blobFloat w-[400px] h-[400px] bg-[radial-gradient(circle,#6c5ce7,#00b894)] -bottom-[100px] -right-[100px] [animation-delay:-4s]"></div>
-    <div class="fixed rounded-full blur-[70px] opacity-25 pointer-events-none -z-10 animate-blobFloat w-[300px] h-[300px] bg-[radial-gradient(circle,#ff79a8,#a29bfe)] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 [animation-delay:-8s]"></div>
+    <div class="bg-blob blob1"></div>
+    <div class="bg-blob blob2"></div>
+    <div class="bg-blob blob3"></div>
 
-    <div class="relative z-0 max-w-[860px] mx-auto flex flex-col gap-7">
+    <div class="main-container">
         <!-- HEADER -->
-        <header class="text-center bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[20px] py-11 px-7 shadow-card animate-fadeSlideDown">
-            <div class="text-[72px] block mb-[18px] animate-bounce">🎧</div>
-            <h1 class="text-[52px] font-extrabold tracking-tight bg-gradient-to-r from-[#facc15] via-[#22e4ac] to-[#38bdf8] bg-clip-text text-transparent mb-2.5">MoodiO</h1>
-            <h2 class="text-lg font-medium opacity-85 mb-3">🎶 Find Your Vibe, Feel the Magic</h2>
-            <p class="text-[15px] opacity-75 leading-relaxed max-w-[540px] mx-auto mb-[22px]">Let AI pick the perfect tunes to match your mood. Select a mood or describe how you feel — your personal
+        <header class="app-header">
+            <div class="headphones">🎧</div>
+            <h1>MoodiO</h1>
+            <h2>🎶 Find Your Vibe, Feel the Magic</h2>
+            <p>Let AI pick the perfect tunes to match your mood. Select a mood or describe how you feel — your personal
                 AI DJ does the rest!</p>
-            <div class="inline-flex items-center gap-2.5 bg-white/20 py-3 px-6 rounded-full font-semibold text-sm animate-[pulse_2.5s_ease-in-out_infinite]">
-                <span class="w-[10px] h-[10px] rounded-full bg-[#2ecc71] shadow-[0_0_0_0_rgba(46,204,113,0.6)] animate-pulseDot"></span>
+            <div class="ready-banner">
+                <span class="pulse-dot"></span>
                 🎵 Ready to discover your mood music!
             </div>
         </header>
 
         <!-- ERROR MESSAGE (hidden by default) -->
-        <div id="errorMessage" class="hidden flex items-center gap-3 bg-[#d63031]/85 backdrop-blur-md border border-white/20 rounded-[14px] py-3.5 px-5 font-medium text-sm shadow-[0_8px_20px_rgba(214,48,49,0.3)] animate-fadeSlideDown" role="alert">
-            <span class="text-[20px] shrink-0">⚠️</span>
-            <p id="errorText" class="flex-1">Something went wrong. Please try again!</p>
-            <button class="bg-transparent border-none text-white cursor-pointer text-base py-0.5 px-1.5 opacity-75 rounded-md transition-all duration-300 ease-out hover:opacity-100 hover:bg-white/20" id="errorCloseBtn">✕</button>
+        <div id="errorMessage" class="error-message hidden" role="alert">
+            <span class="error-icon">⚠️</span>
+            <p id="errorText">Something went wrong. Please try again!</p>
+            <button class="error-close" id="errorCloseBtn">✕</button>
         </div>
 
         <!-- CARD 1: Mood Selection -->
