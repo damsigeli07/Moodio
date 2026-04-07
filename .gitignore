@@ -1,2 +1,16 @@
+# Secrets — never commit these
 config.js
 config.local.php
+.env
+.env.local
+
+# Vercel
+.vercel
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

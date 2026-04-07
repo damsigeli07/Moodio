@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/analyze_mood.php", "destination": "/api/analyze_mood" }
+  ]
+}
